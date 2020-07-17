@@ -44,7 +44,7 @@ In Discord (default prefix is %):
 ## Developer
 **Alejandro Ramos**
 
-* Github: [@aeramos](https://github.com/aeramos)
+* GitHub: [@aeramos](https://github.com/aeramos)
 * Twitter: [@aeramos\_](https://twitter.com/aeramos\_)
 * Email: [aeramos.work@gmail.com](mailto:aeramos.work@gmail.com)
 
