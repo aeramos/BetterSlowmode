@@ -87,6 +87,9 @@ client.on('message', async (message) => {
                 parameters.shift();
                 await helpCommand(prefix, channel, parameters);
                 break;
+            case "info":
+                await infoCommand(channel);
+                break;
             case "prefix":
                 parameters.shift();
                 await prefixCommand(prefix, "prefix", channel, parameters, message.guild.id)
@@ -110,6 +113,14 @@ client.on('message', async (message) => {
     }
 });
 
+async function printOutput(channel, output) {
+    if (channel === undefined) {
+        console.log(output);
+    } else {
+        await channel.send("```\n" + output + "```");
+    }
+}
+
 async function helpCommand(prefix, channel, parameters) {
     if (parameters.length > 1) {
         await printUsage(prefix, "help", channel);
@@ -123,6 +134,14 @@ async function helpCommand(prefix, channel, parameters) {
     }
 
     await printUsage(prefix, parameters[0], channel);
+}
+
+async function infoCommand(channel) {
+    let output = "BetterSlowmode is A Discord bot that adds more depth and customization to text channel slowmodes.";
+    output += "\nBetterSlowmode is developed by Alejandro Ramos (@aeramos#0979) and released on GitHub under the GNU AGPL3+ license.";
+    output += "\nView the source code here: https://github.com/aeramos/BetterSlowmode";
+
+    await printOutput(channel, output);
 }
 
 async function prefixCommand(prefix, command, channel, parameters, guildID) {
@@ -155,7 +174,7 @@ async function setCommand(prefix, command, channel, parameters, slowmodeType) {
                     excluding = false;
                     break;
                 default:
-                    printUsage(message, prefix, command);
+                    await printUsage(prefix, command, channel);
                     return;
             }
         } else {
@@ -173,13 +192,13 @@ async function setCommand(prefix, command, channel, parameters, slowmodeType) {
                     case "s":
                         let amount = parameter.slice(0, -1);
                         if (isNaN(amount)) {
-                            printUsage(message, prefix, command);
+                            await printUsage(prefix, command, channel);
                             return;
                         }
                         addedTime *= 1000 * amount;
                         break;
                     default:
-                        printUsage(message, prefix, command);
+                        await printUsage(prefix, command, channel);
                         return;
                 }
                 length += addedTime;
@@ -192,7 +211,7 @@ async function setCommand(prefix, command, channel, parameters, slowmodeType) {
                         inclusions.push(parameter.slice(3, -1));
                     }
                 } else {
-                    printUsage(message, prefix, command);
+                    await printUsage(prefix, command, channel);
                     return;
                 }
             }
@@ -207,6 +226,10 @@ async function printUsage(prefix, command, channel) {
         case "help":
             output = prefix + "help [command]";
             output += "\nLists commands. If given a command, describes usage of command."
+            break;
+        case "info":
+            output = prefix + "info";
+            output += "\nPrints info about the bot and a link to the code.";
             break;
         case "prefix":
             output = prefix + "prefix <new prefix>";
@@ -225,14 +248,10 @@ async function printUsage(prefix, command, channel) {
             output += "\nSets a slowmode just for text using the given length (in the format: 1y 1d 1h 1m 1s), and optionally excludes or includes users."
             break;
         default:
-            output = "Commands: help, prefix, set, set-image, set-text. Prefix: " + prefix;
+            output = "Commands: help, info, prefix, set, set-image, set-text. Prefix: " + prefix;
             break;
     }
-    if (channel === undefined) {
-        console.log(output);
-    } else {
-        await channel.send("```\n" + output + "```");
-    }
+    await printOutput(channel, output)
 }
 
 client.login(config.token);
