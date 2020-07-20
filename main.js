@@ -21,53 +21,159 @@ const client = new Discord.Client();
 const config = require("./config.json");
 
 const Keyv = require("keyv");
-const db = new Keyv(config["db-url"]);
-db.on('error', err => console.log('Connection Error', err));
+const servers = new Keyv(config["db-url"], {namespace: "servers", serialize: JSON.stringify, deserialize: JSON.parse});
+const channels = new Keyv(config["db-url"], {namespace: "channels", serialize: JSON.stringify, deserialize: JSON.parse});
 
-const Slowmode = require("./Slowmode")
+servers.on('error', err => console.log('Connection Error', err));
+channels.on('error', err => console.log('Connection Error', err));
+
+const ChannelData = require("./ChannelData")
+const ServerData = require("./ServerData");
 
 client.on('ready', async () => {
     console.log(`Logged in as ${client.user.tag}!`);
 
-    // verifies that database is clean before proceeding
-    client.guilds.cache.each(async (guild) => {
-        if (await db.get(guild.id) === undefined) {
-            await db.set(guild.id, config["default-prefix"]);
+    let serverList = await servers.get("list");
+    if (serverList === undefined) {
+        await servers.set("list", []);
+        serverList = [];
+    }
+
+    let channelList = await channels.get("list");
+    if (channelList === undefined) {
+        await channels.set("list", []);
+        channelList = [];
+    }
+
+    // remove servers we're no longer in
+    for (let i = serverList.length - 1; i >= 0; i--) {
+        let serverID = serverList[i];
+        if (!client.guilds.cache.has(serverID)) {
+            // remove channel data
+            let serverData = await servers.get(serverID);
+            let serverChannels = ServerData.getChannels(serverData);
+            for (let i = 0; i < serverChannels.length; i++) {
+                await channels.delete(serverChannels[i]);
+                channelList.splice(channelList.indexOf(serverChannels[i]), 1);
+            }
+
+            // remove server data
+            serverList.splice(serverList.indexOf(serverID), 1);
+            await servers.delete(serverID);
         }
-    });
+    }
+
+    // remove channels that were deleted
+    for (let i = channelList.length - 1; i >= 0; i--) {
+        let channelID = channelList[i];
+        if (!client.channels.cache.has(channelID)) {
+            // remove channel data
+            let serverID = ChannelData.getServer(await channels.get(channelID));
+            let serverData = await servers.get(serverID);
+            let serverChannels = ServerData.getChannels(serverData);
+            await channels.delete(channelID);
+            channelList.splice(channelList.indexOf(channelID), 1);
+
+            // remove server data
+            serverChannels.splice(serverChannels.indexOf(channelID), 1);
+            await servers.set(serverID, serverData);
+        }
+    }
+    await channels.set("list", channelList);
+
+    // add new servers
+    let guildIDs = client.guilds.cache.keys();
+    for (const guildID of guildIDs) {
+        if (!serverList.includes(guildID)) {
+            await addServer(guildID, serverList);
+        }
+    }
+    await servers.set("list", serverList);
+
+    console.log("Database clean. Bot ready!");
 });
 
 client.on("guildCreate", async (guild) => {
-    await db.set(guild.id, config["default-prefix"]);
+    await addServer(guild.id);
 });
 
-client.on("guildDelete", (guild) => {
-    // don't need await because the guild won't be accessed when this method is called
-    db.delete(guild.id);
+client.on("guildDelete", async (guild) => {
+    // remove channel data
+    let serverID = guild.id;
+    let serverData = await servers.get(serverID);
+    let serverChannels = ServerData.getChannels(serverData);
+    if (serverChannels.length > 0) {
+        // only get the channel list if we have to
+        let channelList = await channels.get("list");
+
+        for (let i = 0; i < serverChannels.length; i++) {
+            await channels.delete(serverChannels[i]);
+            channelList.splice(channelList.indexOf(serverChannels[i]), 1);
+        }
+        await channels.set("list", channelList);
+    }
+
+    // remove server data
+    let serverList = await servers.get("list");
+    serverList.splice(serverList.indexOf(serverID), 1);
+    await servers.set("list", serverList);
+    await servers.delete(serverID);
+
 });
+
+client.on("channelDelete", async (channel) => {
+    if (channel.type !== "text") {
+        return; // we only manage guild text channels
+    }
+
+    let serverData = await servers.get(channel.guild.id);
+    let serverChannels = ServerData.getChannels(serverData);
+    if (serverChannels.includes(channel.id)) {
+        // remove channel data
+        await channels.delete(channel.id);
+
+        // remove channel from list
+        let channelList = await channels.get("list");
+        channelList.splice(channelList.indexOf(channel.id), 1);
+        await channels.set("list", channelList);
+
+        // update server data
+        serverChannels.splice(serverChannels.indexOf(channel.id), 1);
+        await servers.set(channel.guild.id, serverData);
+    }
+});
+
+async function addServer(serverID, serverList) {
+    await servers.set(serverID, ServerData.createData(config["default-prefix"]));
+    if (serverList === undefined ) {
+        serverList = await servers.get("list");
+        serverList.push(serverID);
+        await servers.set("list", serverList);
+    } else {
+        serverList.push(serverID);
+    }
+}
 
 client.on('message', async (message) => {
     if (message.author.bot) {
         return;
     }
     const channelID = message.channel.id;
-    let data = await db.get(channelID);
-    if (data !== undefined) { // if there is a slowmode in this channel
-        data = JSON.parse(data);
+    let channelData = await channels.get(channelID);
+    if (channelData !== undefined) { // if there is a slowmode in this channel
         const authorID = message.author.id;
 
         // if author is not excluded from or author is included in the slowmode, check if the message violates the slowmode
-        if (!Slowmode.getExcludes(data).includes(authorID) || Slowmode.getIncludes(data).includes(authorID)) {
+        if (!ChannelData.getExcludes(channelData).includes(authorID) || ChannelData.getIncludes(channelData).includes(authorID)) {
 
             // if both, check slowmode. if just images + it has an image, check slowmode. if text + it has text, check slowmode.
-            if (Slowmode.isBoth(data) || (Slowmode.isImage(data) && message.attachments.size > 0) || (Slowmode.isText(data) && message.content.length > 0)) {
+            if (ChannelData.isBoth(channelData) || (ChannelData.isImage(channelData) && message.attachments.size > 0) || (ChannelData.isText(channelData) && message.content.length > 0)) {
                 const messageTimestamp = message.createdTimestamp;
-                const userTimestamp = Slowmode.getUser(data, authorID);
+                const userTimestamp = ChannelData.getUser(channelData, authorID);
 
-                if (userTimestamp === undefined || messageTimestamp >= userTimestamp + Slowmode.getLength(data)) {
-                    Slowmode.addUser(data, authorID, messageTimestamp);
-                    data = JSON.stringify(data);
-                    await db.set(channelID, data);
+                if (userTimestamp === undefined || messageTimestamp >= userTimestamp + ChannelData.getLength(channelData)) {
+                    ChannelData.addUser(channelData, authorID, messageTimestamp);
+                    await channels.set(channelID, channelData);
                 } else {
                     await message.delete({reason: "Violated slowmode."});
                     return;
@@ -76,7 +182,7 @@ client.on('message', async (message) => {
         }
     }
 
-    const prefix = await db.get(message.guild.id);
+    const prefix = await ServerData.getPrefix(await servers.get(message.guild.id));
     if (message.content.startsWith(prefix)) {
         let parameters = message.content.substring(prefix.length);
         parameters = parameters.split(" ");
@@ -149,7 +255,9 @@ async function prefixCommand(prefix, command, channel, parameters, guildID) {
         await printUsage(prefix, command, channel);
         return;
     }
-    await db.set(guildID, parameters[0]);
+    let serverData = await servers.get(guildID);
+    ServerData.setPrefix(serverData, parameters[0]);
+    await servers.set(guildID, serverData);
 }
 
 async function setCommand(prefix, command, channel, parameters, slowmodeType) {
@@ -217,7 +325,21 @@ async function setCommand(prefix, command, channel, parameters, slowmodeType) {
             }
         }
     }
-    await db.set(channel, JSON.stringify(Slowmode.createData(length, slowmodeType, exclusions, inclusions)))
+    // add the channel to its server's list
+    const serverID = channel.guild.id;
+    const serverData = await servers.get(serverID);
+    const serverChannels = ServerData.getChannels(serverData);
+    if (!serverChannels.includes(channel.id)) {
+        serverChannels.push(channel.id);
+        await servers.set(serverID, serverData);
+
+        let channelList = await channels.get("list");
+        channelList.push(channel.id);
+        await channels.set("list", channelList);
+    }
+
+    // store the channel slowmode data
+    await channels.set(channel.id, ChannelData.createData(serverID, length, slowmodeType, exclusions, inclusions));
 }
 
 async function printUsage(prefix, command, channel) {

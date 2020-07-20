@@ -16,21 +16,27 @@
  * along with BetterSlowmode.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-const LENGTH = 0;
-const TYPE = 1;
-const EXCLUDES = 2;
-const INCLUDES = 3;
-const USERS = 4;
+const SERVER = 0;
+const LENGTH = 1;
+const TYPE = 2;
+const EXCLUDES = 3;
+const INCLUDES = 4;
+const USERS = 5;
 
-class Slowmode {
-    static createData(length, type, excludes, includes) {
+class ChannelData {
+    static createData(server, length, type, excludes, includes) {
         return [
+            server,
             length,
             type,
             excludes,
             includes,
             {}
         ]
+    }
+
+    static getServer(data) {
+        return data[SERVER];
     }
 
     static getLength(data) {
@@ -58,7 +64,6 @@ class Slowmode {
     }
 
     static addUser(data, user, timestamp) {
-        data[USERS] = {};
         data[USERS][user] = timestamp;
     }
 
@@ -70,4 +75,4 @@ class Slowmode {
         delete data[USERS][user];
     }
 }
-module.exports = Slowmode;
+module.exports = ChannelData;
