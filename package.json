@@ -19,7 +19,9 @@
     "@keyv/postgres": "^1.0.16"
   },
   "engines": {
-    "npm": ">=6.13.4",
-    "node": ">=12.16.1"
+    "node": "^12.13.0"
+  },
+  "scripts": {
+    "start": "node main.js"
   }
 }
