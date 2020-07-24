@@ -158,6 +158,11 @@ client.on('message', async (message) => {
     if (message.author.bot) {
         return;
     }
+
+    if (message.guild === undefined) {
+        return; // we don't handle dm messages yet
+    }
+
     const channelID = message.channel.id;
     let channelData = await channels.get(channelID);
     if (channelData !== undefined) { // if there is a slowmode in this channel
@@ -199,6 +204,10 @@ client.on('message', async (message) => {
             case "prefix":
                 parameters.shift();
                 await prefixCommand(prefix, "prefix", channel, parameters, message.guild.id)
+                break;
+            case "remove":
+                parameters.shift();
+                await removeCommand(prefix, "remove", channel, parameters);
                 break;
             case "set":
                 parameters.shift();
@@ -258,6 +267,54 @@ async function prefixCommand(prefix, command, channel, parameters, guildID) {
     let serverData = await servers.get(guildID);
     ServerData.setPrefix(serverData, parameters[0]);
     await servers.set(guildID, serverData);
+}
+
+async function removeCommand(prefix, command, channel, parameters) {
+    if (parameters.length === 0) {
+        await printUsage(prefix, command, channel);
+        return;
+    }
+
+    let channelsToRemove = [];
+    for (let i = 0; i < parameters.length; i++) {
+        const parameter = parameters[i];
+
+        // matches the test for tagging a channel
+        if (parameter.search(/^<#\d+>$/) !== -1) {
+            channelsToRemove.push(parameter.slice(2, -1))
+        } else {
+            await printUsage(prefix, command, channel);
+            return;
+        }
+    }
+
+    let serverData = await servers.get(channel.guild.id);
+    let serverChannels = ServerData.getChannels(serverData);
+    let channelList = undefined; // don't pull from the database if we don't have to
+    for (let i = 0; i < channelsToRemove.length; i++) {
+        const channelID = channelsToRemove[i];
+        if (serverChannels.includes(channelID)) {
+            if (channelList === undefined) {
+                channelList = await channels.get("list");
+            }
+            await removeChannel(serverChannels, channelID, channelList);
+        }
+    }
+    if (channelList !== undefined) {
+        await servers.set(channel.guild.id, serverData);
+        await channels.set("list", channelList);
+    }
+}
+
+// returns true if channel was removed
+async function removeChannel(serverChannels, channelID, channelList) {
+    if (serverChannels.includes(channelID)) {
+        serverChannels.splice(serverChannels.indexOf(channelID), 1);
+        await channels.delete(channelID);
+        channelList.splice(channelList.indexOf(channelID), 1);
+        return true;
+    }
+    return false;
 }
 
 async function setCommand(prefix, command, channel, parameters, slowmodeType) {
@@ -356,6 +413,10 @@ async function printUsage(prefix, command, channel) {
         case "prefix":
             output = prefix + "prefix <new prefix>";
             output += "\nChanges the bot's prefix on this server to the given prefix. Prefix must be one character.";
+            break;
+        case "remove":
+            output = prefix + "remove <#channel(s)>";
+            output += "\nRemoves the slowmode in the given channel or channels.";
             break;
         case "set":
             output = prefix + "set <length> [--exclude <user(s)>] [--include <user(s)>]";
