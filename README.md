@@ -59,7 +59,7 @@ Please ⭐️ this repository if this bot can help you!
 ## 📝 License
 Copyright © 2020 [Alejandro Ramos](https://github.com/aeramos).
 
-This project is licensed under the [AGPL-3.0+](https://github.com/aeramos/BetterSlowmode/blob/master/COPYING).
+This project is licensed under the [AGPL-3.0+](https://github.com/aeramos/BetterSlowmode/blob/master/LICENSE.txt).
 
 ***
 _This README was generated with ❤️ by [readme-md-generator](https://github.com/kefranabg/readme-md-generator)

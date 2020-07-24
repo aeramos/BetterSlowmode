@@ -431,7 +431,7 @@ async function printUsage(prefix, command, channel) {
             output += "\nSets a slowmode just for text using the given length (in the format: 1y 1d 1h 1m 1s), and optionally excludes or includes users."
             break;
         default:
-            output = "Commands: help, info, prefix, set, set-image, set-text. Prefix: " + prefix;
+            output = "Commands: help, info, prefix, remove, set, set-image, set-text. Prefix: " + prefix;
             break;
     }
     await printOutput(channel, output)
