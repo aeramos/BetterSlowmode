@@ -39,6 +39,7 @@ In Discord (default prefix is %):
 %set 1h 30m 10s --exclude @aeramos#0979
 %set-image 1d --include @aeramos#0979
 %set-text 1y
+%remove #channel
 ```
 
 ## Developer

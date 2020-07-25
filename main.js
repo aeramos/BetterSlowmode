@@ -38,21 +38,27 @@ client.on('ready', async () => {
         await servers.set("list", []);
         serverList = [];
     }
+    let serverListModified = false;
 
     let channelList = await channels.get("list");
     if (channelList === undefined) {
         await channels.set("list", []);
         channelList = [];
     }
+    let channelListModified = false;
 
     // remove servers we're no longer in
     for (let i = serverList.length - 1; i >= 0; i--) {
         let serverID = serverList[i];
         if (!client.guilds.cache.has(serverID)) {
+            serverListModified = true;
+
             // remove channel data
             let serverData = await servers.get(serverID);
             let serverChannels = ServerData.getChannels(serverData);
             for (let i = 0; i < serverChannels.length; i++) {
+                channelListModified = true;
+
                 await channels.delete(serverChannels[i]);
                 channelList.splice(channelList.indexOf(serverChannels[i]), 1);
             }
@@ -63,32 +69,47 @@ client.on('ready', async () => {
         }
     }
 
+    let serversModified = new Map();
     // remove channels that were deleted
     for (let i = channelList.length - 1; i >= 0; i--) {
         let channelID = channelList[i];
         if (!client.channels.cache.has(channelID)) {
-            // remove channel data
-            let serverID = ChannelData.getServer(await channels.get(channelID));
-            let serverData = await servers.get(serverID);
-            let serverChannels = ServerData.getChannels(serverData);
-            await channels.delete(channelID);
-            channelList.splice(channelList.indexOf(channelID), 1);
+            channelListModified = true;
 
-            // remove server data
-            serverChannels.splice(serverChannels.indexOf(channelID), 1);
-            await servers.set(serverID, serverData);
+            let serverID = ChannelData.getServer(await channels.get(channelID));
+            let serverData;
+            let serverChannels;
+
+            // only get the server data if we don't already have it
+            if (serversModified.get(serverID) === undefined) {
+                serverData = await servers.get(serverID);
+                serversModified.set(serverID, serverData);
+            }
+            serverChannels = ServerData.getChannels(serverData);
+
+            await removeChannel(serverChannels, channelID, channelList);
         }
     }
-    await channels.set("list", channelList);
+    // only update the server data if it was modified
+    for (const [serverID, serverData] of serversModified.entries()) {
+        await servers.set(serverID, serverData);
+    }
 
     // add new servers
     let guildIDs = client.guilds.cache.keys();
     for (const guildID of guildIDs) {
         if (!serverList.includes(guildID)) {
+            serverListModified = true;
             await addServer(guildID, serverList);
         }
     }
-    await servers.set("list", serverList);
+
+    if (serverListModified) {
+        await servers.set("list", serverList);
+    }
+    if (channelListModified) {
+        await channels.set("list", channelList);
+    }
 
     console.log("Database clean. Bot ready!");
 });
@@ -118,7 +139,6 @@ client.on("guildDelete", async (guild) => {
     serverList.splice(serverList.indexOf(serverID), 1);
     await servers.set("list", serverList);
     await servers.delete(serverID);
-
 });
 
 client.on("channelDelete", async (channel) => {
@@ -129,16 +149,10 @@ client.on("channelDelete", async (channel) => {
     let serverData = await servers.get(channel.guild.id);
     let serverChannels = ServerData.getChannels(serverData);
     if (serverChannels.includes(channel.id)) {
-        // remove channel data
-        await channels.delete(channel.id);
-
         // remove channel from list
         let channelList = await channels.get("list");
-        channelList.splice(channelList.indexOf(channel.id), 1);
+        await removeChannel(serverChannels, channel.id, channelList);
         await channels.set("list", channelList);
-
-        // update server data
-        serverChannels.splice(serverChannels.indexOf(channel.id), 1);
         await servers.set(channel.guild.id, serverData);
     }
 });
@@ -152,6 +166,12 @@ async function addServer(serverID, serverList) {
     } else {
         serverList.push(serverID);
     }
+}
+
+async function removeChannel(serverChannels, channelID, channelList) {
+    await channels.delete(channelID);
+    serverChannels.splice(serverChannels.indexOf(channelID), 1);
+    channelList.splice(channelList.indexOf(channelID), 1);
 }
 
 client.on('message', async (message) => {
@@ -306,17 +326,6 @@ async function removeCommand(prefix, command, channel, parameters) {
     }
 }
 
-// returns true if channel was removed
-async function removeChannel(serverChannels, channelID, channelList) {
-    if (serverChannels.includes(channelID)) {
-        serverChannels.splice(serverChannels.indexOf(channelID), 1);
-        await channels.delete(channelID);
-        channelList.splice(channelList.indexOf(channelID), 1);
-        return true;
-    }
-    return false;
-}
-
 async function setCommand(prefix, command, channel, parameters, slowmodeType) {
     if (parameters.length === 0) {
         await printUsage(prefix, command, channel);
@@ -345,6 +354,7 @@ async function setCommand(prefix, command, channel, parameters, slowmodeType) {
         } else {
             if (excluding === null) {
                 let addedTime = 1;
+                // noinspection FallThroughInSwitchStatementJS
                 switch (parameter.slice(-1)) {
                     case "y":
                         addedTime *= 365;
