@@ -20,6 +20,9 @@ const Discord = require("discord.js");
 const client = new Discord.Client();
 const config = require("./config.json");
 
+const ChannelData = require("./ChannelData")
+const ServerData = require("./ServerData");
+
 const Keyv = require("keyv");
 const servers = new Keyv(config["db-url"], {namespace: "servers", serialize: JSON.stringify, deserialize: JSON.parse});
 const channels = new Keyv(config["db-url"], {namespace: "channels", serialize: JSON.stringify, deserialize: JSON.parse});
@@ -27,10 +30,30 @@ const channels = new Keyv(config["db-url"], {namespace: "channels", serialize: J
 servers.on('error', err => console.log('Connection Error', err));
 channels.on('error', err => console.log('Connection Error', err));
 
-const ChannelData = require("./ChannelData")
-const ServerData = require("./ServerData");
+process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdown);
+let doingAction = true;
+let signal = undefined;
+
+function shutdown(sentSignal) {
+    signal = sentSignal;
+    console.log("Waiting for safe shutdown due to " + signal + "!");
+    waitForShutdown();
+}
+
+async function waitForShutdown() {
+    if (doingAction) {
+        setImmediate(waitForShutdown);
+    } else {
+        console.log("Bot shutting down now due to " + signal + "!");
+
+        client.destroy();
+        process.exit(0);
+    }
+}
 
 client.on('ready', async () => {
+    doingAction = true;
     console.log(`Logged in as ${client.user.tag}!`);
 
     let serverList = await servers.get("list");
@@ -112,13 +135,18 @@ client.on('ready', async () => {
     }
 
     console.log("Database clean. Bot ready!");
+    doingAction = false;
 });
 
 client.on("guildCreate", async (guild) => {
+    doingAction = true;
     await addServer(guild.id);
+    doingAction = false;
 });
 
 client.on("guildDelete", async (guild) => {
+    doingAction = true;
+
     // remove channel data
     let serverID = guild.id;
     let serverData = await servers.get(serverID);
@@ -139,12 +167,15 @@ client.on("guildDelete", async (guild) => {
     serverList.splice(serverList.indexOf(serverID), 1);
     await servers.set("list", serverList);
     await servers.delete(serverID);
+
+    doingAction = false;
 });
 
 client.on("channelDelete", async (channel) => {
     if (channel.type !== "text") {
         return; // we only manage guild text channels
     }
+    doingAction = true;
 
     let serverData = await servers.get(channel.guild.id);
     let serverChannels = ServerData.getChannels(serverData);
@@ -155,6 +186,7 @@ client.on("channelDelete", async (channel) => {
         await channels.set("list", channelList);
         await servers.set(channel.guild.id, serverData);
     }
+    doingAction = false;
 });
 
 async function addServer(serverID, serverList) {
@@ -178,10 +210,10 @@ client.on('message', async (message) => {
     if (message.author.bot) {
         return;
     }
-
     if (message.guild === undefined) {
         return; // we don't handle dm messages yet
     }
+    doingAction = true;
 
     const channelID = message.channel.id;
     let channelData = await channels.get(channelID);
@@ -201,6 +233,7 @@ client.on('message', async (message) => {
                     await channels.set(channelID, channelData);
                 } else {
                     await message.delete({reason: "Violated slowmode."});
+                    doingAction = false;
                     return;
                 }
             }
@@ -246,6 +279,7 @@ client.on('message', async (message) => {
                 break;
         }
     }
+    doingAction = false;
 });
 
 async function printOutput(channel, output) {
