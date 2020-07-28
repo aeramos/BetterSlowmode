@@ -223,13 +223,14 @@ client.on('message', async (message) => {
 
     const channelID = message.channel.id;
     let channelData = await channels.get(channelID);
-    if (channelData !== undefined) { // if there is a slowmode in this channel
-        const authorID = message.author.id;
+    const authorID = message.author.id;
 
-        // if author is not excluded from or author is included in the slowmode, check if the message violates the slowmode
-        if (!ChannelData.getExcludes(channelData).includes(authorID) || ChannelData.getIncludes(channelData).includes(authorID)) {
+    // if there is a slowmode in this channel
+    if (channelData !== undefined) {
+        // inc || !(exc || perms).  equivalent to: inc || (!exc && !perms)
+        if (ChannelData.getIncludes(channelData).includes(authorID) || !(ChannelData.getExcludes(channelData).includes(authorID) || (message.member.hasPermission("MANAGE_MESSAGES") || message.member.hasPermission("MANAGE_CHANNELS")))) {
 
-            // if both, check slowmode. if just images + it has an image, check slowmode. if text + it has text, check slowmode.
+            // if both text and images, check slowmode. if just images + it has an image, check slowmode. if text + it has text, check slowmode.
             if (ChannelData.isBoth(channelData) || (ChannelData.isImage(channelData) && message.attachments.size > 0) || (ChannelData.isText(channelData) && message.content.length > 0)) {
                 const messageTimestamp = message.createdTimestamp;
                 const userTimestamp = ChannelData.getUser(channelData, authorID);
@@ -261,24 +262,34 @@ client.on('message', async (message) => {
                 await infoCommand(channel);
                 break;
             case "prefix":
-                parameters.shift();
-                await prefixCommand(prefix, "prefix", channel, parameters, message.guild.id)
+                if (checkPermissions(message, ["MANAGE_GUILD"], [])) {
+                    parameters.shift();
+                    await prefixCommand(prefix, "prefix", channel, parameters, message.guild.id);
+                }
                 break;
             case "remove":
-                parameters.shift();
-                await removeCommand(prefix, "remove", channel, parameters);
+                if (checkPermissions(message, ["MANAGE_CHANNELS"], [])) {
+                    parameters.shift();
+                    await removeCommand(prefix, "remove", channel, parameters, authorID);
+                }
                 break;
             case "set":
-                parameters.shift();
-                await setCommand(prefix, "set", channel, parameters, null);
+                if (checkPermissions(message, ["MANAGE_CHANNELS"], ["MANAGE_MESSAGES"])) {
+                    parameters.shift();
+                    await setCommand(prefix, "set", channel, parameters, null);
+                }
                 break;
             case "set-image":
-                parameters.shift();
-                await setCommand(prefix, "set-image", channel, parameters, false);
+                if (checkPermissions(message, ["MANAGE_CHANNELS"], ["MANAGE_MESSAGES"])) {
+                    parameters.shift();
+                    await setCommand(prefix, "set-image", channel, parameters, false);
+                }
                 break;
             case "set-text":
-                parameters.shift();
-                await setCommand(prefix, "set-text", channel, parameters, true);
+                if (checkPermissions(message, ["MANAGE_CHANNELS"], ["MANAGE_MESSAGES"])) {
+                    parameters.shift();
+                    await setCommand(prefix, "set-text", channel, parameters, true);
+                }
                 break;
             default:
                 await printUsage(prefix, undefined, channel);
@@ -287,6 +298,40 @@ client.on('message', async (message) => {
     }
     doingAction = false;
 });
+
+function checkPermissions(message, userPermissions, botPermissions) {
+    const guildMember = message.member;
+    const bot = message.guild.me;
+    let permissionsGood = true;
+
+    let missingPermissions = getMissingPermission(guildMember, userPermissions);
+    if (missingPermissions !== "") {
+        permissionsGood = false;
+        message.reply("you don't have permission to use this command: " + missingPermissions);
+    }
+
+    missingPermissions = getMissingPermission(bot, botPermissions);
+    if (missingPermissions !== "") {
+        permissionsGood = false;
+        message.reply("bot does not have permission to use this command: " + missingPermissions);
+    }
+
+    return permissionsGood;
+}
+
+function getMissingPermission(guildMember, requiredPermissions) {
+    let missingPermissions = "";
+    for (let i = 0; i < requiredPermissions.length; i++) {
+        if (!guildMember.hasPermission(requiredPermissions[i])) {
+            if (missingPermissions !== "") {
+                missingPermissions += ", ";
+            }
+            // convert "MANAGE_CHANNELS" to "Manage Channels" for example
+            missingPermissions += requiredPermissions[i].toLowerCase().split("_").map((s) => s.charAt(0).toUpperCase() + s.substring(1)).join(" ");
+        }
+    }
+    return missingPermissions;
+}
 
 async function printOutput(channel, output) {
     if (channel === undefined) {
@@ -329,7 +374,7 @@ async function prefixCommand(prefix, command, channel, parameters, guildID) {
     await servers.set(guildID, serverData);
 }
 
-async function removeCommand(prefix, command, channel, parameters) {
+async function removeCommand(prefix, command, channel, parameters, authorID) {
     if (parameters.length === 0) {
         await printUsage(prefix, command, channel);
         return;
@@ -354,10 +399,15 @@ async function removeCommand(prefix, command, channel, parameters) {
     for (let i = 0; i < channelsToRemove.length; i++) {
         const channelID = channelsToRemove[i];
         if (serverChannels.includes(channelID)) {
-            if (channelList === undefined) {
-                channelList = await channels.get("list");
+            let channelData = await channels.get(channelID);
+            if (ChannelData.getIncludes(channelData).includes(authorID)) {
+                channel.send("<@!" + authorID + ">, you can not remove slowmode on <#" + channelID + "> because it applies to you!");
+            } else {
+                if (channelList === undefined) {
+                    channelList = await channels.get("list");
+                }
+                await removeChannel(serverChannels, channelID, channelList);
             }
-            await removeChannel(serverChannels, channelID, channelList);
         }
     }
     if (channelList !== undefined) {
@@ -420,10 +470,24 @@ async function setCommand(prefix, command, channel, parameters, slowmodeType) {
             } else {
                 // matches the text for tagging a user
                 if (parameter.search(/^<@!\d+>$/) !== -1) {
+                    const userID = parameter.slice(3, -1);
+
                     if (excluding) {
-                        exclusions.push(parameter.slice(3, -1));
+                        if (inclusions.includes(userID)) {
+                            await printUsage(prefix, command, channel);
+                            return;
+                        }
+                        if (!exclusions.includes(userID)) {
+                            exclusions.push(userID);
+                        }
                     } else {
-                        inclusions.push(parameter.slice(3, -1));
+                        if (exclusions.includes(userID)) {
+                            await printUsage(prefix, command, channel);
+                            return;
+                        }
+                        if (!inclusions.includes(userID)) {
+                            inclusions.push(userID);
+                        }
                     }
                 } else {
                     await printUsage(prefix, command, channel);
@@ -466,19 +530,19 @@ async function printUsage(prefix, command, channel) {
             break;
         case "remove":
             output = prefix + "remove <#channel(s)>";
-            output += "\nRemoves the slowmode in the given channel or channels.";
+            output += "\nRemoves the slowmode in the given channel or channels. Can not remove a slowmode set on yourself.";
             break;
         case "set":
             output = prefix + "set <length> [--exclude <user(s)>] [--include <user(s)>]";
-            output += "\nSets a slowmode using the given length (in the format: 1y 1d 1h 1m 1s), and optionally excludes or includes users."
+            output += "\nSets a slowmode using the given length (in the format: 1y 1d 1h 1m 1s), and optionally excludes or includes users. Can not exclude and include the same user."
             break;
         case "set-image":
             output = prefix + "set-image <length> [--exclude <user(s)>] [--include <user(s)>]";
-            output += "\nSets a slowmode just for images using the given length (in the format: 1y 1d 1h 1m 1s), and optionally excludes or includes users."
+            output += "\nSets a slowmode just for images using the given length (in the format: 1y 1d 1h 1m 1s), and optionally excludes or includes users. Can not exclude and include the same user."
             break;
         case "set-text":
             output = prefix + "set-text <length> [--exclude <user(s)>] [--include <user(s)>]";
-            output += "\nSets a slowmode just for text using the given length (in the format: 1y 1d 1h 1m 1s), and optionally excludes or includes users."
+            output += "\nSets a slowmode just for text using the given length (in the format: 1y 1d 1h 1m 1s), and optionally excludes or includes users. Can not exclude and include the same user."
             break;
         default:
             output = "Commands: help, info, prefix, remove, set, set-image, set-text. Prefix: " + prefix;
