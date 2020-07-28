@@ -27,23 +27,29 @@ const Keyv = require("keyv");
 const servers = new Keyv(config["db-url"], {namespace: "servers", serialize: JSON.stringify, deserialize: JSON.parse});
 const channels = new Keyv(config["db-url"], {namespace: "channels", serialize: JSON.stringify, deserialize: JSON.parse});
 
-servers.on('error', err => console.log('Connection Error', err));
-channels.on('error', err => console.log('Connection Error', err));
+servers.on('error', databaseError);
+channels.on('error', databaseError);
+
+function databaseError(error) {
+    console.log(error);
+
+    console.log("Bot shutting down now due to database error!");
+    client.destroy();
+    process.exit(0);
+}
 
 process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
 let doingAction = true;
-let signal = undefined;
 
-function shutdown(sentSignal) {
-    signal = sentSignal;
+function shutdown(signal) {
     console.log("Waiting for safe shutdown due to " + signal + "!");
-    waitForShutdown();
+    waitForShutdown(signal);
 }
 
-async function waitForShutdown() {
+async function waitForShutdown(signal) {
     if (doingAction) {
-        setImmediate(waitForShutdown);
+        setImmediate(waitForShutdown, signal);
     } else {
         console.log("Bot shutting down now due to " + signal + "!");
 
