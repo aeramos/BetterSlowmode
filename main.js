@@ -276,7 +276,7 @@ client.on('message', async (message) => {
             case "set":
                 if (checkPermissions(message, ["MANAGE_CHANNELS"], ["MANAGE_MESSAGES"])) {
                     parameters.shift();
-                    await setCommand(prefix, "set", channel, parameters, null);
+                    await setCommand(prefix, "set", channel, parameters, null, message.member);
                 }
                 break;
             case "set-image":
@@ -307,13 +307,13 @@ function checkPermissions(message, userPermissions, botPermissions) {
     let missingPermissions = getMissingPermission(guildMember, userPermissions);
     if (missingPermissions !== "") {
         permissionsGood = false;
-        message.reply("you don't have permission to use this command: " + missingPermissions);
+        message.reply("you don't have permission to use this command. You need: " + missingPermissions);
     }
 
     missingPermissions = getMissingPermission(bot, botPermissions);
     if (missingPermissions !== "") {
         permissionsGood = false;
-        message.reply("bot does not have permission to use this command: " + missingPermissions);
+        message.reply("bot does not have permission to use this command. The bot needs: " + missingPermissions);
     }
 
     return permissionsGood;
@@ -416,7 +416,7 @@ async function removeCommand(prefix, command, channel, parameters, authorID) {
     }
 }
 
-async function setCommand(prefix, command, channel, parameters, slowmodeType) {
+async function setCommand(prefix, command, channel, parameters, slowmodeType, author) {
     if (parameters.length === 0) {
         await printUsage(prefix, command, channel);
         return;
@@ -481,7 +481,8 @@ async function setCommand(prefix, command, channel, parameters, slowmodeType) {
                             exclusions.push(userID);
                         }
                     } else {
-                        if (exclusions.includes(userID)) {
+                        // if including someone more powerful, themselves, or someone already excluded, cancel the operation
+                        if (isMorePowerful(channel.guild, channel.guild.member(client.users.cache.get(userID)), author) || userID === author.id || exclusions.includes(userID)) {
                             await printUsage(prefix, command, channel);
                             return;
                         }
@@ -513,6 +514,16 @@ async function setCommand(prefix, command, channel, parameters, slowmodeType) {
     await channels.set(channel.id, ChannelData.createData(serverID, length, slowmodeType, exclusions, inclusions));
 }
 
+function isMorePowerful(guild, guildMember1, guildMember2) {
+    if (guildMember1 === guild.owner) {
+        return true;
+    }
+    if (guildMember2 === guild.owner) {
+        return false;
+    }
+    return guildMember1.roles.highest.comparePositionTo(guildMember2.roles.highest);
+}
+
 async function printUsage(prefix, command, channel) {
     let output;
     switch (command) {
@@ -534,15 +545,18 @@ async function printUsage(prefix, command, channel) {
             break;
         case "set":
             output = prefix + "set <length> [--exclude <user(s)>] [--include <user(s)>]";
-            output += "\nSets a slowmode using the given length (in the format: 1y 1d 1h 1m 1s), and optionally excludes or includes users. Can not exclude and include the same user."
+            output += "\nSets a slowmode using the given length (in the format: 1y 1d 1h 1m 1s), and optionally excludes or includes users.";
+            output += "\nCan only --include people in a lower role than you and people who are not already --excluded.";
             break;
         case "set-image":
             output = prefix + "set-image <length> [--exclude <user(s)>] [--include <user(s)>]";
-            output += "\nSets a slowmode just for images using the given length (in the format: 1y 1d 1h 1m 1s), and optionally excludes or includes users. Can not exclude and include the same user."
+            output += "\nSets a slowmode just for images using the given length (in the format: 1y 1d 1h 1m 1s), and optionally excludes or includes users."
+            output += "\nCan only --include people in a lower role than you and people who are not already --excluded.";
             break;
         case "set-text":
             output = prefix + "set-text <length> [--exclude <user(s)>] [--include <user(s)>]";
-            output += "\nSets a slowmode just for text using the given length (in the format: 1y 1d 1h 1m 1s), and optionally excludes or includes users. Can not exclude and include the same user."
+            output += "\nSets a slowmode just for text using the given length (in the format: 1y 1d 1h 1m 1s), and optionally excludes or includes users."
+            output += "\nCan only --include people in a lower role than you and people who are not already --excluded.";
             break;
         default:
             output = "Commands: help, info, prefix, remove, set, set-image, set-text.";
