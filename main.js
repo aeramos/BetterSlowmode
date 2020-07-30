@@ -298,7 +298,7 @@ client.on('message', async (message) => {
                 break;
         }
     } else if (message.content.startsWith("<@!" + config["bot id"] + ">")) {
-        await channel.send("My prefix is: " + prefix);
+        await printOutput(channel, "My prefix is: " + prefix + "\nUse " + prefix + "help for a list of commands!");
     }
     doingAction = false;
 });
