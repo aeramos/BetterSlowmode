@@ -24,8 +24,8 @@ const ChannelData = require("./ChannelData")
 const ServerData = require("./ServerData");
 
 const Keyv = require("keyv");
-const servers = new Keyv(config["db-url"], {namespace: "servers", serialize: JSON.stringify, deserialize: JSON.parse});
-const channels = new Keyv(config["db-url"], {namespace: "channels", serialize: JSON.stringify, deserialize: JSON.parse});
+const servers = new Keyv(config["database-url"], {namespace: "servers", serialize: JSON.stringify, deserialize: JSON.parse});
+const channels = new Keyv(config["database-url"], {namespace: "channels", serialize: JSON.stringify, deserialize: JSON.parse});
 
 servers.on('error', databaseError);
 channels.on('error', databaseError);
@@ -60,6 +60,8 @@ async function waitForShutdown(signal) {
 
 client.on('ready', async () => {
     doingAction = true;
+
+    await client.user.setActivity("@ me for prefix!");
     console.log(`Logged in as ${client.user.tag}!`);
 
     let serverList = await servers.get("list");
@@ -248,10 +250,10 @@ client.on('message', async (message) => {
     }
 
     const prefix = await ServerData.getPrefix(await servers.get(message.guild.id));
+    let channel = message.channel;
     if (message.content.startsWith(prefix)) {
         let parameters = message.content.substring(prefix.length);
         parameters = parameters.split(" ");
-        let channel = message.channel;
 
         switch (parameters[0]) {
             case "help":
@@ -295,6 +297,8 @@ client.on('message', async (message) => {
                 await printUsage(prefix, undefined, channel);
                 break;
         }
+    } else if (message.content.startsWith("<@!" + config["bot id"] + ">")) {
+        await channel.send("My prefix is: " + prefix);
     }
     doingAction = false;
 });
@@ -572,4 +576,4 @@ async function printUsage(prefix, command, channel) {
     await printOutput(channel, output)
 }
 
-client.login(config.token);
+client.login(config["bot token"]);

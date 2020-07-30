@@ -32,7 +32,7 @@ Run the bot with:
 node main.js
 ```
 
-In Discord (default prefix is %):
+In Discord, @ the bot for the prefix, default is %:
 ```sh
 %help
 %prefix !
