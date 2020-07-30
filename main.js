@@ -379,21 +379,20 @@ async function prefixCommand(prefix, command, channel, parameters, guildID) {
 }
 
 async function removeCommand(prefix, command, channel, parameters, authorID) {
-    if (parameters.length === 0) {
-        await printUsage(prefix, command, channel);
-        return;
-    }
-
     let channelsToRemove = [];
-    for (let i = 0; i < parameters.length; i++) {
-        const parameter = parameters[i];
+    if (parameters.length === 0) {
+        channelsToRemove.push(channel.id);
+    } else {
+        for (let i = 0; i < parameters.length; i++) {
+            const parameter = parameters[i];
 
-        // matches the test for tagging a channel
-        if (parameter.search(/^<#\d+>$/) !== -1) {
-            channelsToRemove.push(parameter.slice(2, -1))
-        } else {
-            await printUsage(prefix, command, channel);
-            return;
+            // matches the test for tagging a channel
+            if (parameter.search(/^<#\d+>$/) !== -1) {
+                channelsToRemove.push(parameter.slice(2, -1))
+            } else {
+                await printUsage(prefix, command, channel);
+                return;
+            }
         }
     }
 
@@ -550,8 +549,8 @@ async function printUsage(prefix, command, channel) {
             output += "\nChanges the bot's prefix on this server to the given prefix. Prefix must be one character.";
             break;
         case "remove":
-            output = prefix + "remove <#channel(s)>";
-            output += "\nRemoves the slowmode in the given channel or channels. Can not remove a slowmode set on yourself.";
+            output = prefix + "remove [#channel(s)]";
+            output += "\nRemoves a slowmode in the current channel or the given channel(s). Can not remove a slowmode set on yourself.";
             break;
         case "set":
             output = prefix + "set <length> [--exclude <user(s)>] [--include <user(s)>]";
