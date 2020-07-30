@@ -471,7 +471,13 @@ async function setCommand(prefix, command, channel, parameters, slowmodeType, au
                 // matches the text for tagging a user
                 if (parameter.search(/^<@!\d+>$/) !== -1) {
                     const userID = parameter.slice(3, -1);
+                    const member = channel.guild.members.cache.get(userID);
 
+                    // if the given user is not in the server
+                    if (member === undefined) {
+                        await printUsage(prefix, command, channel);
+                        return;
+                    }
                     if (excluding) {
                         if (inclusions.includes(userID)) {
                             await printUsage(prefix, command, channel);
@@ -482,7 +488,7 @@ async function setCommand(prefix, command, channel, parameters, slowmodeType, au
                         }
                     } else {
                         // if including someone more powerful, themselves, or someone already excluded, cancel the operation
-                        if (isMorePowerful(channel.guild, channel.guild.member(client.users.cache.get(userID)), author) || userID === author.id || exclusions.includes(userID)) {
+                        if (isMorePowerful(channel.guild, member, author) || userID === author.id || exclusions.includes(userID)) {
                             await printUsage(prefix, command, channel);
                             return;
                         }
@@ -545,17 +551,17 @@ async function printUsage(prefix, command, channel) {
             break;
         case "set":
             output = prefix + "set <length> [--exclude <user(s)>] [--include <user(s)>]";
-            output += "\nSets a slowmode using the given length (in the format: 1y 1d 1h 1m 1s), and optionally excludes or includes users.";
+            output += "\nSets a slowmode using the given length (in the format: 1y 1d 1h 1m 1s), and optionally excludes or includes users in this server.";
             output += "\nCan only --include people in a lower role than you and people who are not already --excluded.";
             break;
         case "set-image":
             output = prefix + "set-image <length> [--exclude <user(s)>] [--include <user(s)>]";
-            output += "\nSets a slowmode just for images using the given length (in the format: 1y 1d 1h 1m 1s), and optionally excludes or includes users."
+            output += "\nSets a slowmode just for images using the given length (in the format: 1y 1d 1h 1m 1s), and optionally excludes or includes users in this server."
             output += "\nCan only --include people in a lower role than you and people who are not already --excluded.";
             break;
         case "set-text":
             output = prefix + "set-text <length> [--exclude <user(s)>] [--include <user(s)>]";
-            output += "\nSets a slowmode just for text using the given length (in the format: 1y 1d 1h 1m 1s), and optionally excludes or includes users."
+            output += "\nSets a slowmode just for text using the given length (in the format: 1y 1d 1h 1m 1s), and optionally excludes or includes users in this server."
             output += "\nCan only --include people in a lower role than you and people who are not already --excluded.";
             break;
         default:
