@@ -24,6 +24,12 @@ const INCLUDES = 4;
 const USERS = 5;
 
 class ChannelData {
+    #data;
+
+    constructor(data) {
+        this.#data = data;
+    }
+
     static createData(server, length, type, excludes, includes) {
         return [
             server,
@@ -35,44 +41,48 @@ class ChannelData {
         ]
     }
 
-    static getServer(data) {
-        return data[SERVER];
+    getData() {
+        return this.#data;
     }
 
-    static getLength(data) {
-        return data[LENGTH];
+    getServer() {
+        return this.#data[SERVER];
     }
 
-    static isText(data) {
-        return data[TYPE] === true;
+    getLength() {
+        return this.#data[LENGTH];
     }
 
-    static isImage(data) {
-        return data[TYPE] === false;
+    isText() {
+        return this.#data[TYPE] === true;
     }
 
-    static isBoth(data) {
-        return data[TYPE] === null;
+    isImage() {
+        return this.#data[TYPE] === false;
     }
 
-    static getExcludes(data) {
-        return data[EXCLUDES];
+    isBoth() {
+        return this.#data[TYPE] === null;
     }
 
-    static getIncludes(data) {
-        return data[INCLUDES];
+    excludes(userID) {
+        return this.#data[EXCLUDES].includes(userID);
     }
 
-    static addUser(data, user, timestamp) {
-        data[USERS][user] = timestamp;
+    includes(userID) {
+        return this.#data[INCLUDES].includes(userID);
     }
 
-    static getUser(data, user) {
-        return data[USERS][user];
+    addUser(user, timestamp) {
+        this.#data[USERS][user] = timestamp;
     }
 
-    static removeUser(data, user) {
-        delete data[USERS][user];
+    getUser(user) {
+        return this.#data[USERS][user];
+    }
+
+    removeUser(user) {
+        delete this.#data[USERS][user];
     }
 }
 module.exports = ChannelData;

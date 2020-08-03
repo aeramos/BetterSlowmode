@@ -85,8 +85,8 @@ client.on('ready', async () => {
             serverListModified = true;
 
             // remove channel data
-            let serverData = await servers.get(serverID);
-            let serverChannels = ServerData.getChannels(serverData);
+            let serverData = new ServerData(await servers.get(serverID));
+            let serverChannels = serverData.getChannels();
             for (let i = 0; i < serverChannels.length; i++) {
                 channelListModified = true;
 
@@ -107,23 +107,23 @@ client.on('ready', async () => {
         if (!client.channels.cache.has(channelID)) {
             channelListModified = true;
 
-            let serverID = ChannelData.getServer(await channels.get(channelID));
+            let serverID = new ChannelData(await channels.get(channelID)).getServer();
             let serverData;
             let serverChannels;
 
             // only get the server data if we don't already have it
             if (serversModified.get(serverID) === undefined) {
-                serverData = await servers.get(serverID);
+                serverData = new ServerData(await servers.get(serverID));
                 serversModified.set(serverID, serverData);
             }
-            serverChannels = ServerData.getChannels(serverData);
+            serverChannels = serverData.getChannels();
 
             await removeChannel(serverChannels, channelID, channelList);
         }
     }
     // only update the server data if it was modified
     for (const [serverID, serverData] of serversModified.entries()) {
-        await servers.set(serverID, serverData);
+        await servers.set(serverID, serverData.getData());
     }
 
     // add new servers
@@ -157,8 +157,8 @@ client.on("guildDelete", async (guild) => {
 
     // remove channel data
     let serverID = guild.id;
-    let serverData = await servers.get(serverID);
-    let serverChannels = ServerData.getChannels(serverData);
+    let serverData = new ServerData(await servers.get(serverID));
+    let serverChannels = serverData.getChannels();
     if (serverChannels.length > 0) {
         // only get the channel list if we have to
         let channelList = await channels.get("list");
@@ -185,14 +185,14 @@ client.on("channelDelete", async (channel) => {
     }
     doingAction = true;
 
-    let serverData = await servers.get(channel.guild.id);
-    let serverChannels = ServerData.getChannels(serverData);
+    let serverData = new ServerData(await servers.get(channel.guild.id));
+    let serverChannels = serverData.getChannels();
     if (serverChannels.includes(channel.id)) {
         // remove channel from list
         let channelList = await channels.get("list");
         await removeChannel(serverChannels, channel.id, channelList);
         await channels.set("list", channelList);
-        await servers.set(channel.guild.id, serverData);
+        await servers.set(channel.guild.id, serverData.getData());
     }
     doingAction = false;
 });
@@ -224,22 +224,22 @@ client.on('message', async (message) => {
     doingAction = true;
 
     const channelID = message.channel.id;
-    let channelData = await channels.get(channelID);
+    let channelData = new ChannelData(await channels.get(channelID));
     const authorID = message.author.id;
 
     // if there is a slowmode in this channel
-    if (channelData !== undefined) {
+    if (channelData.getData() !== undefined) {
         // inc || !(exc || perms).  equivalent to: inc || (!exc && !perms)
-        if (ChannelData.getIncludes(channelData).includes(authorID) || !(ChannelData.getExcludes(channelData).includes(authorID) || (message.member.hasPermission("MANAGE_MESSAGES") || message.member.hasPermission("MANAGE_CHANNELS")))) {
+        if (channelData.includes(authorID) || !(channelData.excludes(authorID) || (message.member.hasPermission("MANAGE_MESSAGES") || message.member.hasPermission("MANAGE_CHANNELS")))) {
 
             // if both text and images, check slowmode. if just images + it has an image, check slowmode. if text + it has text, check slowmode.
-            if (ChannelData.isBoth(channelData) || (ChannelData.isImage(channelData) && message.attachments.size > 0) || (ChannelData.isText(channelData) && message.content.length > 0)) {
+            if (channelData.isBoth() || (channelData.isImage() && message.attachments.size > 0) || (channelData.isText() && message.content.length > 0)) {
                 const messageTimestamp = message.createdTimestamp;
-                const userTimestamp = ChannelData.getUser(channelData, authorID);
+                const userTimestamp = channelData.getUser(authorID);
 
-                if (userTimestamp === undefined || messageTimestamp >= userTimestamp + ChannelData.getLength(channelData)) {
-                    ChannelData.addUser(channelData, authorID, messageTimestamp);
-                    await channels.set(channelID, channelData);
+                if (userTimestamp === undefined || messageTimestamp >= userTimestamp + channelData.getLength()) {
+                    channelData.addUser(authorID, messageTimestamp);
+                    await channels.set(channelID, channelData.getData());
                 } else {
                     await message.delete({reason: "Violated slowmode."});
                     doingAction = false;
@@ -249,7 +249,7 @@ client.on('message', async (message) => {
         }
     }
 
-    const prefix = await ServerData.getPrefix(await servers.get(message.guild.id));
+    const prefix = new ServerData(await servers.get(message.guild.id)).getPrefix();
     let channel = message.channel;
     if (message.content.startsWith(prefix)) {
         let parameters = message.content.substring(prefix.length);
@@ -373,9 +373,9 @@ async function prefixCommand(prefix, command, channel, parameters, guildID) {
         await printUsage(prefix, command, channel);
         return;
     }
-    let serverData = await servers.get(guildID);
-    ServerData.setPrefix(serverData, parameters[0]);
-    await servers.set(guildID, serverData);
+    let serverData = new ServerData(await servers.get(guildID));
+    serverData.setPrefix(parameters[0]);
+    await servers.set(guildID, serverData.getData());
 }
 
 async function removeCommand(prefix, command, channel, parameters, authorID) {
@@ -396,14 +396,14 @@ async function removeCommand(prefix, command, channel, parameters, authorID) {
         }
     }
 
-    let serverData = await servers.get(channel.guild.id);
-    let serverChannels = ServerData.getChannels(serverData);
+    let serverData = new ServerData(await servers.get(channel.guild.id));
+    let serverChannels = serverData.getChannels();
     let channelList = undefined; // don't pull from the database if we don't have to
     for (let i = 0; i < channelsToRemove.length; i++) {
         const channelID = channelsToRemove[i];
         if (serverChannels.includes(channelID)) {
-            let channelData = await channels.get(channelID);
-            if (ChannelData.getIncludes(channelData).includes(authorID)) {
+            let channelData = new ChannelData(await channels.get(channelID));
+            if (channelData.includes(authorID)) {
                 channel.send("<@!" + authorID + ">, you can not remove slowmode on <#" + channelID + "> because it applies to you!");
             } else {
                 if (channelList === undefined) {
@@ -414,7 +414,7 @@ async function removeCommand(prefix, command, channel, parameters, authorID) {
         }
     }
     if (channelList !== undefined) {
-        await servers.set(channel.guild.id, serverData);
+        await servers.set(channel.guild.id, serverData.getData());
         await channels.set("list", channelList);
     }
 }
@@ -508,11 +508,11 @@ async function setCommand(prefix, command, channel, parameters, slowmodeType, au
     }
     // add the channel to its server's list
     const serverID = channel.guild.id;
-    const serverData = await servers.get(serverID);
-    const serverChannels = ServerData.getChannels(serverData);
+    const serverData = new ServerData(await servers.get(serverID));
+    const serverChannels = serverData.getChannels();
     if (!serverChannels.includes(channel.id)) {
         serverChannels.push(channel.id);
-        await servers.set(serverID, serverData);
+        await servers.set(serverID, serverData.getData());
 
         let channelList = await channels.get("list");
         channelList.push(channel.id);

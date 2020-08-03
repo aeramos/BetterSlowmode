@@ -20,6 +20,12 @@ const PREFIX = 0;
 const CHANNELS = 1;
 
 class ServerData {
+    #data;
+
+    constructor(data) {
+        this.#data = data;
+    }
+
     static createData(prefix) {
         return [
             prefix,
@@ -27,16 +33,20 @@ class ServerData {
         ];
     }
 
-    static getPrefix(data) {
-        return data[PREFIX];
+    getData() {
+        return this.#data;
     }
 
-    static setPrefix(data, prefix) {
-        data[PREFIX] = prefix;
+    getPrefix() {
+        return this.#data[PREFIX];
     }
 
-    static getChannels(data) {
-        return data[CHANNELS];
+    setPrefix(prefix) {
+        this.#data[PREFIX] = prefix;
+    }
+
+    getChannels() {
+        return this.#data[CHANNELS];
     }
 }
 module.exports = ServerData;
