@@ -226,35 +226,35 @@ async function printUsage(channel, command) {
     let output;
     switch (command) {
         case "help":
-            output = prefix + "help [command]";
+            output = "```" + prefix + "help [command]```";
             output += "\nLists commands. If given a command, describes usage of command."
             break;
         case "info":
-            output = prefix + "info";
+            output = "```" + prefix + "info```";
             output += "\nPrints info about the bot and a link to the code.";
             break;
         case "remove":
-            output = prefix + "remove";
+            output = "```" + prefix + "remove```";
             output += "\nRemoves a slowmode in the current channel. Can not remove a slowmode that you are subject to. This can be due to permissions, your role being included, or you being specially included.";
             break;
         case "set":
-            output = prefix + "set <length> [--exclude <user(s)>] [--include <user(s)>]";
-            output += "\nSets a slowmode using the given length (in the format: 1y 1d 1h 1m 1s), and optionally excludes or includes users in this server.";
-            output += "\nCan only --include people in a lower role than you and people who are not already --excluded (and vice versa).";
+            output = "```" + prefix + "set <length> [--exclude <user(s)>] [--include <user(s)>]```";
+            output += "\nSets a slowmode using the given length (in the format: `1y 1d 1h 1m 1s`), and optionally excludes or includes users in this server.";
+            output += "\nCan only `--include` people in a lower role than you and people who are not already `--excluded` (and vice versa).";
             break;
         case "set-image":
-            output = prefix + "set-image <length> [--exclude <user(s)>] [--include <user(s)>]";
-            output += "\nSets a slowmode just for images using the given length (in the format: 1y 1d 1h 1m 1s), and optionally excludes or includes users in this server."
-            output += "\nCan only --include people in a lower role than you and people who are not already --excluded (and vice versa).";
+            output = "```" + prefix + "set-image <length> [--exclude <user(s)>] [--include <user(s)>]```";
+            output += "\nSets a slowmode just for images using the given length (in the format: `1y 1d 1h 1m 1s`), and optionally excludes or includes users in this server."
+            output += "\nCan only `--include` people in a lower role than you and people who are not already `--excluded` (and vice versa).";
             break;
         case "set-text":
-            output = prefix + "set-text <length> [--exclude <user(s)>] [--include <user(s)>]";
-            output += "\nSets a slowmode just for text using the given length (in the format: 1y 1d 1h 1m 1s), and optionally excludes or includes users in this server."
-            output += "\nCan only --include people in a lower role than you and people who are not already --excluded (and vice versa).";
+            output = "```" + prefix + "set-text <length> [--exclude <user(s)>] [--include <user(s)>]```";
+            output += "\nSets a slowmode just for text using the given length (in the format: `1y 1d 1h 1m 1s`), and optionally excludes or includes users in this server."
+            output += "\nCan only `--include` people in a lower role than you and people who are not already `--excluded` (and vice versa).";
             break;
         default:
-            output = "Commands: help, info, remove, set, set-image, set-text.";
-            output += "\nPrefix: " + prefix;
+            output = "Commands: `help`, `info`, `remove`, `set`, `set-image`, `set-text`.";
+            output += "\nPrefix: `" + prefix + "`";
             break;
     }
     printOutput(channel, output)
@@ -264,13 +264,13 @@ function printOutput(channel, output) {
     if (channel === undefined) {
         console.log(output);
     } else {
-        channel.send("```\n" + output + "```");
+        channel.send(output);
     }
 }
 
 function infoCommand(channel) {
     let output = "BetterSlowmode is a Discord bot that adds more depth and customization to text channel slowmodes.";
-    output += "\nBetterSlowmode is developed by Alejandro Ramos (Discord: @aeramos#0979) and released on GitHub under the GNU AGPL3+ license.";
+    output += "\nBetterSlowmode is developed by Alejandro Ramos (Discord: `@aeramos#0979`) and released on GitHub under the GNU AGPL3+.";
     output += "\nView the source code here: https://github.com/aeramos/BetterSlowmode";
 
     printOutput(channel, output);
@@ -383,13 +383,13 @@ async function setCommand(command, channel, author, parameters, slowmodeType) {
             let temp = parameter.match(/(<@(\d{1,20}?)>)/g);
             if (temp !== null) {
                 temp.forEach((e, i, a) => a[i] = e.slice(2, -1))
-                Array.push.apply(userMentions, temp);
+                Array.prototype.push.apply(userMentions, temp);
             }
 
             temp = parameter.match(/(<@!(\d{1,20}?)>)/g);
             if (temp !== null) {
                 temp.forEach((e, i, a) => a[i] = e.slice(3, -1))
-                Array.push.apply(userMentions, temp);
+                Array.prototype.push.apply(userMentions, temp);
             }
 
             let roleMentions = [];
@@ -415,7 +415,7 @@ async function setCommand(command, channel, author, parameters, slowmodeType) {
     }
 
     database.setChannel(new ChannelData2(channel.id, channel.guild.id, length, slowmodeType, userExclusions, userInclusions, roleExclusions, roleInclusions, [], [])).then(() => {
-        channel.send(`${author}, ${length / 1000} second ${slowmodeType === true ? "text" : slowmodeType === false ? "image" : "text and image"} slowmode has been set!`);
+        channel.send(`${author}, ` + getPrettyTime(length / 1000) + `${slowmodeType === true ? "text" : slowmodeType === false ? "image" : "text and image"} slowmode has been set!`);
     });
 }
 
@@ -480,6 +480,18 @@ function isMorePowerfulThanRole(guild, guildMember, role) {
         return true;
     }
     return guildMember.roles.highest.comparePositionTo(role) > 0;
+}
+
+function getPrettyTime(totalSeconds) {
+    let years = Math.floor(totalSeconds / 31536000);
+    let days = Math.floor(totalSeconds % 31536000 / 86400);
+    let hours = Math.floor(totalSeconds % 86400 / 3600);
+    let minutes = Math.floor(totalSeconds % 3600 / 60);
+    let seconds = Math.floor(totalSeconds % 60);
+
+    return (years > 0 ? `${years} year` + (years > 1 ? "s " : " ") : "") + (days > 0 ? `${days} day` + (days > 1 ? "s " : " ") : "")
+        + (hours > 0 ? `${hours} hour` + (hours > 1 ? "s " : " ") : "") + (minutes > 0 ? `${minutes} minute` + (minutes > 1 ? "s " : " ") : "")
+        + (seconds > 0 ? `${seconds} second` + (seconds > 1 ? "s " : " ") : "");
 }
 
 client.login(config["bot-token"]);

@@ -21,21 +21,21 @@ up the database, you'll be able to add BetterSlowmode to your server! Until then
 with instructions below!
 
 ## Install
-```sh
-npm install
-```
+1. Install and configure Postgres server
+2. Setup `config.json` (use `config.json.example`)
+3. `npm install`
 
 ## Usage
 Run the bot with:
-```sh
-node main.js
+```
+npm start
 ```
 
 Try some commands with the bot, use `%help` for more information.
-```sh
+```
 %help
-%set 1h 30m 10s --exclude @aeramos#0979
-%set-image 1d --include @aeramos#0979
+%set 1h 30m 10s --exclude @aeramos
+%set-image 1d --include @aeramos
 %set-text 1y
 %remove
 ```
