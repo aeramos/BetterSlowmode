@@ -1,6 +1,5 @@
 {
-    "bot id": "discord bot id",
-    "bot token": "discord bot token",
-    "database-url": "link to postgres database",
+    "bot-token": "Discord bot token. needed for connecting the bot to Discord",
+    "database-url": "link to Postgres database",
     "default-prefix": "%"
 }

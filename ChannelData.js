@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Alejandro Ramos
+ * Copyright (C) 2020, 2021 Alejandro Ramos
  * This file is part of BetterSlowmode
  *
  * BetterSlowmode is free software: you can redistribute it and/or modify
@@ -16,73 +16,124 @@
  * along with BetterSlowmode.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-const SERVER = 0;
-const LENGTH = 1;
-const TYPE = 2;
-const EXCLUDES = 3;
-const INCLUDES = 4;
-const USERS = 5;
-
 class ChannelData {
-    #data;
+    #id;
+    #serverID;
+    #length;
+    #type;
+    #userExcludes;
+    #userIncludes;
+    #roleExcludes;
+    #roleIncludes;
+    #users;
+    #userTimes;
 
-    constructor(data) {
-        this.#data = data;
+    constructor(id, serverID, length, type, userExcludes, userIncludes, roleExcludes, roleIncludes, users, userTimes) {
+        this.#id = id;
+        this.#serverID = serverID;
+        this.#length = length;
+        this.#type = type;
+        this.#userExcludes = userExcludes;
+        this.#userIncludes = userIncludes;
+        this.#roleExcludes = roleExcludes;
+        this.#roleIncludes = roleIncludes;
+        this.#users = users;
+        this.#userTimes = userTimes;
     }
 
-    static createData(server, length, type, excludes, includes) {
-        return [
-            server,
-            length,
-            type,
-            excludes,
-            includes,
-            {}
-        ]
+    getID() {
+        return this.#id;
     }
 
-    getData() {
-        return this.#data;
-    }
-
-    getServer() {
-        return this.#data[SERVER];
+    getServerID() {
+        return this.#serverID;
     }
 
     getLength() {
-        return this.#data[LENGTH];
+        return this.#length;
+    }
+
+    getType() {
+        return this.#type;
+    }
+
+    getUserExcludes() {
+        return this.#userExcludes;
+    }
+
+    getUserIncludes() {
+        return this.#userIncludes;
+    }
+
+    getRoleExcludes() {
+        return this.#roleExcludes;
+    }
+
+    getRoleIncludes() {
+        return this.#roleIncludes;
+    }
+
+    getUsers() {
+        return this.#users;
+    }
+
+    getUserTimes() {
+        return this.#userTimes;
+    }
+
+    excludesUser(id) {
+        return this.#userExcludes.includes(id);
+    }
+
+    includesUser(id) {
+        return this.#userIncludes.includes(id);
+    }
+
+    excludesRole(id) {
+        return this.#roleExcludes.includes(id);
+    }
+
+    includesRole(id) {
+        return this.#roleIncludes.includes(id);
+    }
+
+    getUserTime(id) {
+        let index = this.#users.indexOf(id);
+        if (index !== -1) {
+            return this.#userTimes[index];
+        } else {
+            return -1;
+        }
+    }
+
+    timeIsGood(id, messageTimestamp) {
+        const userTimestamp = this.getUserTime(id);
+        if (userTimestamp === undefined) {
+            return true;
+        }
+        return BigInt(messageTimestamp) >= BigInt(userTimestamp) + BigInt(this.getLength());
+    }
+
+    addUser(id, time) {
+        let index = this.#users.indexOf(id);
+        if (index !== -1) {
+            this.#userTimes[index] = time;
+        } else {
+            this.#users.push(id);
+            this.#userTimes.push(time);
+        }
     }
 
     isText() {
-        return this.#data[TYPE] === true;
+        return this.#type === true;
     }
 
     isImage() {
-        return this.#data[TYPE] === false;
+        return this.#type === false;
     }
 
     isBoth() {
-        return this.#data[TYPE] === null;
-    }
-
-    excludes(userID) {
-        return this.#data[EXCLUDES].includes(userID);
-    }
-
-    includes(userID) {
-        return this.#data[INCLUDES].includes(userID);
-    }
-
-    addUser(user, timestamp) {
-        this.#data[USERS][user] = timestamp;
-    }
-
-    getUser(user) {
-        return this.#data[USERS][user];
-    }
-
-    removeUser(user) {
-        delete this.#data[USERS][user];
+        return this.#type === null;
     }
 }
 module.exports = ChannelData;

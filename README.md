@@ -9,12 +9,11 @@
 
 ## Overview
 BetterSlowmode is a Discord bot designed to give users more power when defining slowmodes for text
-channels. With the bot, users can specifically exclude or include certain members to the slowmode,
-and they can specify which types of content will be blocked during the slowmode: text or images.
+channels. With the bot, users can specifically exclude or include certain members or roles to the slowmode,
+and they can specify which types of content will be blocked during the slowmode: text or images or both.
 
 BetterSlowmode is designed for as much customization as possible. Your slowmodes can be as short as
-1 second, or as long as 1 year! You can even change the bot's prefix in your server so it doesn't
-interfere with other bots!
+1 second, or as long as 1 year!
 
 ## Invite the bot to your server!
 Coming soon! Once the codebase becomes stable and after I add more tools for automatically cleaning
@@ -32,14 +31,13 @@ Run the bot with:
 node main.js
 ```
 
-In Discord, @ the bot for the prefix, default is %:
+Try some commands with the bot, use `%help` for more information.
 ```sh
 %help
-%prefix !
 %set 1h 30m 10s --exclude @aeramos#0979
 %set-image 1d --include @aeramos#0979
 %set-text 1y
-%remove #channel
+%remove
 ```
 
 ## Developer
@@ -58,7 +56,7 @@ Feel free to check the [issues page](https://github.com/aeramos/BetterSlowmode/i
 Please ⭐️ this repository if this bot can help you!
 
 ## 📝 License
-Copyright © 2020 [Alejandro Ramos](https://github.com/aeramos).
+Copyright © 2020, 2021 [Alejandro Ramos](https://github.com/aeramos).
 
 This project is licensed under the [AGPL-3.0+](https://github.com/aeramos/BetterSlowmode/blob/master/LICENSE.txt).
 

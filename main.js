@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Alejandro Ramos
+ * Copyright (C) 2020, 2021 Alejandro Ramos
  * This file is part of BetterSlowmode
  *
  * BetterSlowmode is free software: you can redistribute it and/or modify
@@ -20,520 +20,209 @@ const Discord = require("discord.js");
 const client = new Discord.Client();
 const config = require("./config.json");
 
-const ChannelData = require("./ChannelData")
-const ServerData = require("./ServerData");
+const Database = require("./Database");
+let database;
 
-const Keyv = require("keyv");
-const servers = new Keyv(config["database-url"], {namespace: "servers", serialize: JSON.stringify, deserialize: JSON.parse});
-const channels = new Keyv(config["database-url"], {namespace: "channels", serialize: JSON.stringify, deserialize: JSON.parse});
+const ChannelData2 = require("./ChannelData");
+const prefix = "%";
 
-servers.on('error', databaseError);
-channels.on('error', databaseError);
+process.on("SIGINT", shutDownBot);
+process.on("SIGTERM", shutDownBot);
 
-function databaseError(error) {
-    console.log(error);
+client.on("ready", async () => {
+    console.log(`Logged in as ${client.user.tag}`);
+    client.user.setActivity("%help for help!");
 
-    console.log("Bot shutting down now due to database error!");
-    client.destroy();
-    process.exit(0);
+    initializeBot().then(() => {
+        console.log("Database clean. Bot ready!");
+    });
+});
+
+async function initializeBot() {
+    let serverIDs = client.guilds.cache.keyArray();
+    let channelIDs = client.channels.cache.filter(channel => channel.type === "text").keyArray();
+
+    await Database.build(config["database-url"]).then(async (db) => {
+        database = db;
+        await database.sanitizeDatabase(serverIDs, channelIDs);
+    });
 }
 
-process.on("SIGINT", shutdown);
-process.on("SIGTERM", shutdown);
-let doingAction = true;
-
-function shutdown(signal) {
-    console.log("Waiting for safe shutdown due to " + signal + "!");
-    waitForShutdown(signal);
-}
-
-async function waitForShutdown(signal) {
-    if (doingAction) {
-        setImmediate(waitForShutdown, signal);
-    } else {
-        console.log("Bot shutting down now due to " + signal + "!");
+function shutDownBot(signal) {
+    console.log("Bot has received " + signal + ", shutting down.");
+    database.shutDown().then(() => {
+        console.log("Database shut down. Bot shutting down now!");
 
         client.destroy();
         process.exit(0);
-    }
+    })
 }
 
-client.on('ready', async () => {
-    doingAction = true;
-
-    await client.user.setActivity("@ me for prefix!");
-    console.log(`Logged in as ${client.user.tag}!`);
-
-    let serverList = await servers.get("list");
-    if (serverList === undefined) {
-        await servers.set("list", []);
-        serverList = [];
-    }
-    let serverListModified = false;
-
-    let channelList = await channels.get("list");
-    if (channelList === undefined) {
-        await channels.set("list", []);
-        channelList = [];
-    }
-    let channelListModified = false;
-
-    // remove servers we're no longer in
-    for (let i = serverList.length - 1; i >= 0; i--) {
-        let serverID = serverList[i];
-        if (!client.guilds.cache.has(serverID)) {
-            serverListModified = true;
-
-            // remove channel data
-            let serverData = new ServerData(await servers.get(serverID));
-            let serverChannels = serverData.getChannels();
-            for (let i = 0; i < serverChannels.length; i++) {
-                channelListModified = true;
-
-                await channels.delete(serverChannels[i]);
-                channelList.splice(channelList.indexOf(serverChannels[i]), 1);
-            }
-
-            // remove server data
-            serverList.splice(serverList.indexOf(serverID), 1);
-            await servers.delete(serverID);
-        }
-    }
-
-    let serversModified = new Map();
-    // remove channels that were deleted
-    for (let i = channelList.length - 1; i >= 0; i--) {
-        let channelID = channelList[i];
-        if (!client.channels.cache.has(channelID)) {
-            channelListModified = true;
-
-            let serverID = new ChannelData(await channels.get(channelID)).getServer();
-            let serverData;
-            let serverChannels;
-
-            // only get the server data if we don't already have it
-            if (serversModified.get(serverID) === undefined) {
-                serverData = new ServerData(await servers.get(serverID));
-                serversModified.set(serverID, serverData);
-            }
-            serverChannels = serverData.getChannels();
-
-            await removeChannel(serverChannels, channelID, channelList);
-        }
-    }
-    // only update the server data if it was modified
-    for (const [serverID, serverData] of serversModified.entries()) {
-        await servers.set(serverID, serverData.getData());
-    }
-
-    // add new servers
-    let guildIDs = client.guilds.cache.keys();
-    for (const guildID of guildIDs) {
-        if (!serverList.includes(guildID)) {
-            serverListModified = true;
-            await addServer(guildID, serverList);
-        }
-    }
-
-    if (serverListModified) {
-        await servers.set("list", serverList);
-    }
-    if (channelListModified) {
-        await channels.set("list", channelList);
-    }
-
-    console.log("Database clean. Bot ready!");
-    doingAction = false;
+client.on("guildDelete", guild => {
+    database.removeServer(guild.id);
 });
 
-client.on("guildCreate", async (guild) => {
-    doingAction = true;
-    await addServer(guild.id);
-    doingAction = false;
-});
-
-client.on("guildDelete", async (guild) => {
-    doingAction = true;
-
-    // remove channel data
-    let serverID = guild.id;
-    let serverData = new ServerData(await servers.get(serverID));
-    let serverChannels = serverData.getChannels();
-    if (serverChannels.length > 0) {
-        // only get the channel list if we have to
-        let channelList = await channels.get("list");
-
-        for (let i = 0; i < serverChannels.length; i++) {
-            await channels.delete(serverChannels[i]);
-            channelList.splice(channelList.indexOf(serverChannels[i]), 1);
-        }
-        await channels.set("list", channelList);
-    }
-
-    // remove server data
-    let serverList = await servers.get("list");
-    serverList.splice(serverList.indexOf(serverID), 1);
-    await servers.set("list", serverList);
-    await servers.delete(serverID);
-
-    doingAction = false;
-});
-
-client.on("channelDelete", async (channel) => {
+client.on("channelDelete", channel => {
     if (channel.type !== "text") {
         return; // we only manage guild text channels
     }
-    doingAction = true;
-
-    let serverData = new ServerData(await servers.get(channel.guild.id));
-    let serverChannels = serverData.getChannels();
-    if (serverChannels.includes(channel.id)) {
-        // remove channel from list
-        let channelList = await channels.get("list");
-        await removeChannel(serverChannels, channel.id, channelList);
-        await channels.set("list", channelList);
-        await servers.set(channel.guild.id, serverData.getData());
-    }
-    doingAction = false;
+    database.removeChannel(channel.id);
 });
 
-async function addServer(serverID, serverList) {
-    await servers.set(serverID, ServerData.createData(config["default-prefix"]));
-    if (serverList === undefined ) {
-        serverList = await servers.get("list");
-        serverList.push(serverID);
-        await servers.set("list", serverList);
-    } else {
-        serverList.push(serverID);
-    }
-}
-
-async function removeChannel(serverChannels, channelID, channelList) {
-    await channels.delete(channelID);
-    serverChannels.splice(serverChannels.indexOf(channelID), 1);
-    channelList.splice(channelList.indexOf(channelID), 1);
-}
-
-client.on('message', async (message) => {
+client.on("message", async (message) => {
+    // don't respond to bots
     if (message.author.bot) {
         return;
     }
+    // bot does not handle dm messages yet
     if (message.guild === undefined) {
-        return; // we don't handle dm messages yet
+        return;
     }
-    doingAction = true;
 
-    const channelID = message.channel.id;
-    let channelData = new ChannelData(await channels.get(channelID));
     const authorID = message.author.id;
+    const channel = message.channel;
+    const channelID = channel.id;
+    let channelData = await database.getChannel(channelID);
 
-    // if there is a slowmode in this channel
-    if (channelData.getData() !== undefined) {
-        // inc || !(exc || perms).  equivalent to: inc || (!exc && !perms)
-        if (channelData.includes(authorID) || !(channelData.excludes(authorID) || (message.member.hasPermission("MANAGE_MESSAGES") || message.member.hasPermission("MANAGE_CHANNELS")))) {
-
+    if (channelData !== null && channelData.getLength() !== 0) {
+        if (subjectToSlowmode(message.member, channel, channelData)) {
             // if both text and images, check slowmode. if just images + it has an image, check slowmode. if text + it has text, check slowmode.
             if (channelData.isBoth() || (channelData.isImage() && message.attachments.size > 0) || (channelData.isText() && message.content.length > 0)) {
                 const messageTimestamp = message.createdTimestamp;
-                const userTimestamp = channelData.getUser(authorID);
 
-                if (userTimestamp === undefined || messageTimestamp >= userTimestamp + channelData.getLength()) {
+                if (channelData.timeIsGood(authorID, messageTimestamp)) {
                     channelData.addUser(authorID, messageTimestamp);
-                    await channels.set(channelID, channelData.getData());
+                    await database.setChannel(channelData);
                 } else {
                     await message.delete({reason: "Violated slowmode."});
-                    doingAction = false;
                     return;
                 }
             }
         }
     }
 
-    const prefix = new ServerData(await servers.get(message.guild.id)).getPrefix();
-    let channel = message.channel;
     if (message.content.startsWith(prefix)) {
         let parameters = message.content.substring(prefix.length);
-        parameters = parameters.split(" ");
+        parameters = parameters.split(" ").filter(e => e !== "");
 
         switch (parameters[0]) {
             case "help":
-                parameters.shift();
-                await helpCommand(prefix, channel, parameters);
+                printUsage(channel, parameters[1]);
                 break;
             case "info":
-                await infoCommand(channel);
-                break;
-            case "prefix":
-                if (checkPermissions(message, ["MANAGE_GUILD"], [])) {
-                    parameters.shift();
-                    await prefixCommand(prefix, "prefix", channel, parameters, message.guild.id);
-                }
+                infoCommand(channel);
                 break;
             case "remove":
-                if (checkPermissions(message, ["MANAGE_CHANNELS"], [])) {
+                if (checkUsagePermissions(message.member, channel, [[Discord.Permissions.FLAGS.MANAGE_CHANNELS, "Manage Channel"]], [[]])) {
                     parameters.shift();
-                    await removeCommand(prefix, "remove", channel, parameters, authorID);
+                    removeCommand(channel, message.member);
                 }
                 break;
             case "set":
-                if (checkPermissions(message, ["MANAGE_CHANNELS"], ["MANAGE_MESSAGES"])) {
+                if (checkUsagePermissions(message.member, channel, [[Discord.Permissions.FLAGS.MANAGE_CHANNELS, "Manage Channel"]], [[Discord.Permissions.FLAGS.MANAGE_MESSAGES, "Manage Messages"]])) {
                     parameters.shift();
-                    await setCommand(prefix, "set", channel, parameters, null, message.member);
+                    await setCommand("set", channel, message.author, parameters, null);
                 }
                 break;
             case "set-image":
-                if (checkPermissions(message, ["MANAGE_CHANNELS"], ["MANAGE_MESSAGES"])) {
+                if (checkUsagePermissions(message.member, channel, [[Discord.Permissions.FLAGS.MANAGE_CHANNELS, "Manage Channel"]], [[Discord.Permissions.FLAGS.MANAGE_MESSAGES, "Manage Messages"]])) {
                     parameters.shift();
-                    await setCommand(prefix, "set-image", channel, parameters, false);
+                    await setCommand("set-image", channel, message.author, parameters, false);
                 }
                 break;
             case "set-text":
-                if (checkPermissions(message, ["MANAGE_CHANNELS"], ["MANAGE_MESSAGES"])) {
+                if (checkUsagePermissions(message.member, channel, [[Discord.Permissions.FLAGS.MANAGE_CHANNELS, "Manage Channel"]], [[Discord.Permissions.FLAGS.MANAGE_MESSAGES, "Manage Messages"]])) {
                     parameters.shift();
-                    await setCommand(prefix, "set-text", channel, parameters, true);
+                    await setCommand("set-text", channel, message.author, parameters, true);
                 }
                 break;
             default:
-                await printUsage(prefix, undefined, channel);
-                break;
+                printUsage(channel, undefined);
         }
-    } else if (message.content.startsWith("<@!" + config["bot id"] + ">")) {
-        await printOutput(channel, "My prefix is: " + prefix + "\nUse " + prefix + "help for a list of commands!");
     }
-    doingAction = false;
 });
 
-function checkPermissions(message, userPermissions, botPermissions) {
-    const guildMember = message.member;
-    const bot = message.guild.me;
-    let permissionsGood = true;
+/*
+ *  Returns a boolean indicating if the given member is subject to a slowmode in the given channel or not.
+ */
+function subjectToSlowmode(member, channel, channelData) {
+    if (member.guild.ownerID === member.id) return false;
+    if (channelData.includesUser(member.id)) return true;
+    if (channelData.excludesUser(member.id)) return false;
 
-    let missingPermissions = getMissingPermission(guildMember, userPermissions);
+    let highestIncludedRole;
+    let highestExcludedRole;
+    for (let role of member.roles.cache) {
+        role = role[1];
+        if (channelData.includesRole(role.id)) {
+            if (highestIncludedRole === undefined || highestIncludedRole.comparePositionTo(role) < 0) {
+                highestIncludedRole = role;
+            }
+        }
+        if (channelData.excludesRole(role.id)) {
+            if (highestExcludedRole === undefined || highestExcludedRole.comparePositionTo(role) < 0) {
+                highestExcludedRole = role;
+            }
+        }
+    }
+    if (highestIncludedRole === undefined) {
+        if (highestExcludedRole === undefined) {
+            // only need to check the permissions in the slowed channel
+            const permissions = member.permissionsIn(channel);
+            return !(permissions.has(Discord.Permissions.FLAGS.MANAGE_MESSAGES) || permissions.has(Discord.Permissions.FLAGS.MANAGE_CHANNELS) || permissions.has(Discord.Permissions.FLAGS.ADMINISTRATOR));
+        } else {
+            return false;
+        }
+    } else {
+        if (highestExcludedRole === undefined) {
+            return true;
+        } else {
+            return highestIncludedRole.comparePositionTo(highestExcludedRole) > 0;
+        }
+    }
+}
+
+/*
+    checks if perms are met in a given channel. if perms are not good it tells the discord user about the missing permissions
+    returns true if permissions are good, false otherwise
+ */
+function checkUsagePermissions(guildMember, channel, userPermissions, botPermissions) {
+    let permissionsGood = true;
+    const bot = guildMember.guild.me;
+
+    let missingPermissions = getMissingPermissions(guildMember, channel, userPermissions);
     if (missingPermissions !== "") {
         permissionsGood = false;
-        message.reply("you don't have permission to use this command. You need: " + missingPermissions);
+        channel.send(`${guildMember}, you don't have permission to use this command in this channel. You need: ${missingPermissions}.`);
     }
 
-    missingPermissions = getMissingPermission(bot, botPermissions);
+    missingPermissions = getMissingPermissions(bot, channel, botPermissions);
     if (missingPermissions !== "") {
         permissionsGood = false;
-        message.reply("bot does not have permission to use this command. The bot needs: " + missingPermissions);
+        channel.send(`${guildMember}, this bot does not have permission to use this command in this channel. The bot needs: ${missingPermissions}.`);
     }
 
     return permissionsGood;
 }
 
-function getMissingPermission(guildMember, requiredPermissions) {
+/*
+    returns a string listing the given required permissions that the member lacks in the given channel.
+    returns an empty string if the member has the permissions
+ */
+function getMissingPermissions(guildMember, channel, requiredPermissions) {
     let missingPermissions = "";
     for (let i = 0; i < requiredPermissions.length; i++) {
-        if (!guildMember.hasPermission(requiredPermissions[i])) {
+        if (!guildMember.permissionsIn(channel).has(requiredPermissions[i][0])) {
             if (missingPermissions !== "") {
                 missingPermissions += ", ";
             }
-            // convert "MANAGE_CHANNELS" to "Manage Channels" for example
-            missingPermissions += requiredPermissions[i].toLowerCase().split("_").map((s) => s.charAt(0).toUpperCase() + s.substring(1)).join(" ");
+            missingPermissions += requiredPermissions[i][1];
         }
     }
     return missingPermissions;
 }
 
-async function printOutput(channel, output) {
-    if (channel === undefined) {
-        console.log(output);
-    } else {
-        await channel.send("```\n" + output + "```");
-    }
-}
-
-async function helpCommand(prefix, channel, parameters) {
-    if (parameters.length > 1) {
-        await printUsage(prefix, "help", channel);
-        return;
-    }
-
-    if (channel === undefined) {
-        // message was sent from console, display console help
-        // coming soon
-        return;
-    }
-
-    await printUsage(prefix, parameters[0], channel);
-}
-
-async function infoCommand(channel) {
-    let output = "BetterSlowmode is A Discord bot that adds more depth and customization to text channel slowmodes.";
-    output += "\nBetterSlowmode is developed by Alejandro Ramos (@aeramos#0979) and released on GitHub under the GNU AGPL3+ license.";
-    output += "\nView the source code here: https://github.com/aeramos/BetterSlowmode";
-
-    await printOutput(channel, output);
-}
-
-async function prefixCommand(prefix, command, channel, parameters, guildID) {
-    if (parameters.length !== 1 || parameters[0].length !== 1) {
-        await printUsage(prefix, command, channel);
-        return;
-    }
-    let serverData = new ServerData(await servers.get(guildID));
-    serverData.setPrefix(parameters[0]);
-    await servers.set(guildID, serverData.getData());
-}
-
-async function removeCommand(prefix, command, channel, parameters, authorID) {
-    let channelsToRemove = [];
-    if (parameters.length === 0) {
-        channelsToRemove.push(channel.id);
-    } else {
-        for (let i = 0; i < parameters.length; i++) {
-            const parameter = parameters[i];
-
-            // matches the test for tagging a channel
-            if (parameter.search(/^<#\d+>$/) !== -1) {
-                channelsToRemove.push(parameter.slice(2, -1))
-            } else {
-                await printUsage(prefix, command, channel);
-                return;
-            }
-        }
-    }
-
-    let serverData = new ServerData(await servers.get(channel.guild.id));
-    let serverChannels = serverData.getChannels();
-    let channelList = undefined; // don't pull from the database if we don't have to
-    for (let i = 0; i < channelsToRemove.length; i++) {
-        const channelID = channelsToRemove[i];
-        if (serverChannels.includes(channelID)) {
-            let channelData = new ChannelData(await channels.get(channelID));
-            if (channelData.includes(authorID)) {
-                channel.send("<@!" + authorID + ">, you can not remove slowmode on <#" + channelID + "> because it applies to you!");
-            } else {
-                if (channelList === undefined) {
-                    channelList = await channels.get("list");
-                }
-                await removeChannel(serverChannels, channelID, channelList);
-            }
-        }
-    }
-    if (channelList !== undefined) {
-        await servers.set(channel.guild.id, serverData.getData());
-        await channels.set("list", channelList);
-    }
-}
-
-async function setCommand(prefix, command, channel, parameters, slowmodeType, author) {
-    if (parameters.length === 0) {
-        await printUsage(prefix, command, channel);
-        return;
-    }
-
-    let length = 0;
-    let exclusions = [];
-    let inclusions = [];
-    let excluding = null;
-
-    for (let i = 0; i < parameters.length; i++) {
-        let parameter = parameters[i];
-        if (parameter.startsWith("--")) {
-            switch (parameter.slice(2)) {
-                case "exclude":
-                    excluding = true;
-                    break;
-                case "include":
-                    excluding = false;
-                    break;
-                default:
-                    await printUsage(prefix, command, channel);
-                    return;
-            }
-        } else {
-            if (excluding === null) {
-                let addedTime = 1;
-                // noinspection FallThroughInSwitchStatementJS
-                switch (parameter.slice(-1)) {
-                    case "y":
-                        addedTime *= 365;
-                    case "d":
-                        addedTime *= 24;
-                    case "h":
-                        addedTime *= 60;
-                    case "m":
-                        addedTime *= 60;
-                    case "s":
-                        let amount = parameter.slice(0, -1);
-                        if (isNaN(amount)) {
-                            await printUsage(prefix, command, channel);
-                            return;
-                        }
-                        addedTime *= 1000 * amount;
-                        break;
-                    default:
-                        await printUsage(prefix, command, channel);
-                        return;
-                }
-                length += addedTime;
-            } else {
-                // matches the text for tagging a user
-                if (parameter.search(/^<@!\d+>$/) !== -1) {
-                    const userID = parameter.slice(3, -1);
-                    const member = channel.guild.members.cache.get(userID);
-
-                    // if the given user is not in the server
-                    if (member === undefined) {
-                        await printUsage(prefix, command, channel);
-                        return;
-                    }
-                    if (excluding) {
-                        if (inclusions.includes(userID)) {
-                            await printUsage(prefix, command, channel);
-                            return;
-                        }
-                        if (!exclusions.includes(userID)) {
-                            exclusions.push(userID);
-                        }
-                    } else {
-                        // if including someone more powerful, themselves, or someone already excluded, cancel the operation
-                        if (isMorePowerful(channel.guild, member, author) || userID === author.id || exclusions.includes(userID)) {
-                            await printUsage(prefix, command, channel);
-                            return;
-                        }
-                        if (!inclusions.includes(userID)) {
-                            inclusions.push(userID);
-                        }
-                    }
-                } else {
-                    await printUsage(prefix, command, channel);
-                    return;
-                }
-            }
-        }
-    }
-    // add the channel to its server's list
-    const serverID = channel.guild.id;
-    const serverData = new ServerData(await servers.get(serverID));
-    const serverChannels = serverData.getChannels();
-    if (!serverChannels.includes(channel.id)) {
-        serverChannels.push(channel.id);
-        await servers.set(serverID, serverData.getData());
-
-        let channelList = await channels.get("list");
-        channelList.push(channel.id);
-        await channels.set("list", channelList);
-    }
-
-    // store the channel slowmode data
-    await channels.set(channel.id, ChannelData.createData(serverID, length, slowmodeType, exclusions, inclusions));
-}
-
-function isMorePowerful(guild, guildMember1, guildMember2) {
-    if (guildMember1 === guild.owner) {
-        return true;
-    }
-    if (guildMember2 === guild.owner) {
-        return false;
-    }
-    return guildMember1.roles.highest.comparePositionTo(guildMember2.roles.highest);
-}
-
-async function printUsage(prefix, command, channel) {
+async function printUsage(channel, command) {
     let output;
     switch (command) {
         case "help":
@@ -544,35 +233,253 @@ async function printUsage(prefix, command, channel) {
             output = prefix + "info";
             output += "\nPrints info about the bot and a link to the code.";
             break;
-        case "prefix":
-            output = prefix + "prefix <new prefix>";
-            output += "\nChanges the bot's prefix on this server to the given prefix. Prefix must be one character.";
-            break;
         case "remove":
-            output = prefix + "remove [#channel(s)]";
-            output += "\nRemoves a slowmode in the current channel or the given channel(s). Can not remove a slowmode set on yourself.";
+            output = prefix + "remove";
+            output += "\nRemoves a slowmode in the current channel. Can not remove a slowmode that you are subject to. This can be due to permissions, your role being included, or you being specially included.";
             break;
         case "set":
             output = prefix + "set <length> [--exclude <user(s)>] [--include <user(s)>]";
             output += "\nSets a slowmode using the given length (in the format: 1y 1d 1h 1m 1s), and optionally excludes or includes users in this server.";
-            output += "\nCan only --include people in a lower role than you and people who are not already --excluded.";
+            output += "\nCan only --include people in a lower role than you and people who are not already --excluded (and vice versa).";
             break;
         case "set-image":
             output = prefix + "set-image <length> [--exclude <user(s)>] [--include <user(s)>]";
             output += "\nSets a slowmode just for images using the given length (in the format: 1y 1d 1h 1m 1s), and optionally excludes or includes users in this server."
-            output += "\nCan only --include people in a lower role than you and people who are not already --excluded.";
+            output += "\nCan only --include people in a lower role than you and people who are not already --excluded (and vice versa).";
             break;
         case "set-text":
             output = prefix + "set-text <length> [--exclude <user(s)>] [--include <user(s)>]";
             output += "\nSets a slowmode just for text using the given length (in the format: 1y 1d 1h 1m 1s), and optionally excludes or includes users in this server."
-            output += "\nCan only --include people in a lower role than you and people who are not already --excluded.";
+            output += "\nCan only --include people in a lower role than you and people who are not already --excluded (and vice versa).";
             break;
         default:
-            output = "Commands: help, info, prefix, remove, set, set-image, set-text.";
+            output = "Commands: help, info, remove, set, set-image, set-text.";
             output += "\nPrefix: " + prefix;
             break;
     }
-    await printOutput(channel, output)
+    printOutput(channel, output)
 }
 
-client.login(config["bot token"]);
+function printOutput(channel, output) {
+    if (channel === undefined) {
+        console.log(output);
+    } else {
+        channel.send("```\n" + output + "```");
+    }
+}
+
+function infoCommand(channel) {
+    let output = "BetterSlowmode is a Discord bot that adds more depth and customization to text channel slowmodes.";
+    output += "\nBetterSlowmode is developed by Alejandro Ramos (Discord: @aeramos#0979) and released on GitHub under the GNU AGPL3+ license.";
+    output += "\nView the source code here: https://github.com/aeramos/BetterSlowmode";
+
+    printOutput(channel, output);
+}
+
+/*
+    removes the slowmode in the channel in which it is called.
+    only removes if the caller is not subject to the slowmode due to permissions or includes.
+ */
+function removeCommand(channel, author) {
+    database.getChannel(channel.id).then(channelData => {
+        if (channelData === null) {
+            channel.send(`${author}, there is no slowmode on this channel to remove.`);
+            return;
+        }
+        if (!subjectToSlowmode(author, channel, channelData)) {
+            database.removeChannel(channel.id).then(() => {
+                channel.send(`${author}, the slowmode has been removed from this channel.`);
+            });
+        } else {
+            channel.send(`${author}, you cannot remove this slowmode because you are subject to it!`);
+        }
+    });
+}
+
+/*
+    command: string "set"/"set-image"/"set-text"
+    author: Discord.GuildMember
+    parameters: parameters for the given command
+    slowmodeType: True/False/Null (text/image/both)
+ */
+async function setCommand(command, channel, author, parameters, slowmodeType) {
+    if (parameters.length === 0) {
+        printUsage(channel, command);
+        return;
+    }
+
+    // instantiate slowmode settings
+    let length = 0;
+    let userExclusions = [];
+    let userInclusions = [];
+    let roleExclusions = [];
+    let roleInclusions = [];
+
+    let isExcluding = null;
+    let timeHasBeenAdded = false;
+
+    // parse each parameter
+    for (let i = 0; i < parameters.length; i++) {
+        let parameter = parameters[i];
+
+        if (parameter.startsWith("--")) {
+            switch (parameter.slice(2)) {
+                case "exclude":
+                    isExcluding = true;
+                    break;
+                case "include":
+                    isExcluding = false;
+                    break;
+                default:
+                    printUsage(channel, command);
+                    return;
+            }
+        // if the parameter starts with a number it can only be the length
+        } else if (parameter.match(/^\d/)) {
+            // enforce that time is only added once
+            if (!timeHasBeenAdded) {
+                timeHasBeenAdded = true;
+            } else {
+                printUsage(channel, command);
+                return;
+            }
+
+            // if properly formatted "15m", will remove the m and leave 15
+            let addedTime = parameter.slice(0, -1);
+            // should only be the case if improperly formatted
+            if (isNaN(addedTime)) {
+                printUsage(channel, command);
+                return;
+            }
+            // switch statement breaks everything down to milliseconds and adds it to `length`
+            // noinspection FallThroughInSwitchStatementJS
+            switch (parameter.slice(-1)) {
+                case "y":
+                    addedTime *= 365;
+                case "d":
+                    addedTime *= 24;
+                case "h":
+                    addedTime *= 60;
+                case "m":
+                    addedTime *= 60;
+                case "s":
+                    addedTime *= 1000;
+                    break;
+                default:
+                    printUsage(channel, command);
+                    return;
+            }
+            length += addedTime;
+        // this string must contain the parameter passed to an option: the tag of a user or role to exclude/include
+        } else {
+            // test to see if it contains channel or user tags, any number of them (at least 1), and nothing more
+            if (!new RegExp(/^(<(@|@!|@&)(\d{1,20}?)>)+$/).test(parameter)) {
+                printUsage(channel, command);
+                return;
+            }
+
+            // put each mention in an array that just contains the id
+            let userMentions = [];
+            let temp = parameter.match(/(<@(\d{1,20}?)>)/g);
+            if (temp !== null) {
+                temp.forEach((e, i, a) => a[i] = e.slice(2, -1))
+                Array.push.apply(userMentions, temp);
+            }
+
+            temp = parameter.match(/(<@!(\d{1,20}?)>)/g);
+            if (temp !== null) {
+                temp.forEach((e, i, a) => a[i] = e.slice(3, -1))
+                Array.push.apply(userMentions, temp);
+            }
+
+            let roleMentions = [];
+            temp = parameter.match(/(<@&(\d{1,20}?)>)/g);
+            if (temp !== null) {
+                temp.forEach((e, i, a) => a[i] = e.slice(3, -1))
+                roleMentions = temp;
+            }
+
+            if (await Promise.all([handleExclusions(channel.guild, author, userMentions, userExclusions, userInclusions, isExcluding, true),
+            handleExclusions(channel.guild, author, roleMentions, roleExclusions, roleInclusions, isExcluding, false)]).then(results =>
+            {
+                return results.includes(false);
+            })) {
+                printUsage(channel, command);
+                return;
+            }
+        }
+    }
+    if (!timeHasBeenAdded) {
+        printUsage(channel, command);
+        return;
+    }
+
+    database.setChannel(new ChannelData2(channel.id, channel.guild.id, length, slowmodeType, userExclusions, userInclusions, roleExclusions, roleInclusions, [], [])).then(() => {
+        channel.send(`${author}, ${length / 1000} second ${slowmodeType === true ? "text" : slowmodeType === false ? "image" : "text and image"} slowmode has been set!`);
+    });
+}
+
+/*
+    just called by setCommand as a helper function
+    modifies the given arrays so that they include the given mentions
+    returns true if no error, false otherwise
+ */
+async function handleExclusions(guild, author, mentions, exclusions, inclusions, isExcluding, isMember) {
+    for (let i = 0; i < mentions.length; i++) {
+        const mentionID = mentions[i];
+
+        let mentionObject = await guild.members.fetch({user: [mentionID], force: false});
+        if (isExcluding) {
+            if (inclusions.includes(mentionID)) {
+                return false;
+            }
+            if (!exclusions.includes(mentionID)) {
+                exclusions.push(mentionID);
+            }
+        } else {
+            if (isMember) {
+                if (!isMorePowerfulThanMember(guild, author, mentionObject)) {
+                    return false;
+                }
+            } else {
+                if (!isMorePowerfulThanRole(guild, author, mentionObject)) {
+                    return false;
+                }
+            }
+            if (exclusions.includes(mentionID)) {
+                return false;
+            }
+            if (!inclusions.includes(mentionID)) {
+                inclusions.push(mentionID);
+            }
+        }
+    }
+
+    return true;
+}
+
+function isMorePowerfulThanMember(guild, guildMember1, guildMember2) {
+    // a member is not more powerful than himself
+    if (guildMember1.id === guildMember2.id) {
+        return false;
+    }
+
+    // if one of the members is the owner
+    if (guildMember1.id === guild.owner.id) {
+        return true;
+    }
+    if (guildMember2.id === guild.owner.id) {
+        return false;
+    }
+
+    return guildMember1.roles.highest.comparePositionTo(guildMember2.roles.highest) > 0;
+}
+
+function isMorePowerfulThanRole(guild, guildMember, role) {
+    if (guildMember.id === guild.owner.id) {
+        return true;
+    }
+    return guildMember.roles.highest.comparePositionTo(role) > 0;
+}
+
+client.login(config["bot-token"]);
