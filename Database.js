@@ -52,7 +52,7 @@ class Database {
                 allowNull: false
             },
             length: {
-                type: DataTypes.INTEGER,
+                type: DataTypes.BIGINT,
                 allowNull: false
             },
             type: {

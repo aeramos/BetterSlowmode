@@ -50,7 +50,7 @@ class ChannelData {
     }
 
     getLength() {
-        return this.#length;
+        return BigInt(this.#length);
     }
 
     getType() {
@@ -100,18 +100,10 @@ class ChannelData {
     getUserTime(id) {
         let index = this.#users.indexOf(id);
         if (index !== -1) {
-            return this.#userTimes[index];
+            return BigInt(this.#userTimes[index]);
         } else {
-            return -1;
+            return -1n;
         }
-    }
-
-    timeIsGood(id, messageTimestamp) {
-        const userTimestamp = this.getUserTime(id);
-        if (userTimestamp === undefined) {
-            return true;
-        }
-        return BigInt(messageTimestamp) >= BigInt(userTimestamp) + BigInt(this.getLength());
     }
 
     addUser(id, time) {

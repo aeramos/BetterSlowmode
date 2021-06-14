@@ -89,8 +89,9 @@ client.on("message", async (message) => {
             // if both text and images, check slowmode. if just images + it has an image, check slowmode. if text + it has text, check slowmode.
             if (channelData.isBoth() || (channelData.isImage() && message.attachments.size > 0) || (channelData.isText() && message.content.length > 0)) {
                 const messageTimestamp = message.createdTimestamp;
+                const userTimestamp = channelData.getUserTime(authorID);
 
-                if (channelData.timeIsGood(authorID, messageTimestamp)) {
+                if (userTimestamp === undefined || messageTimestamp >= userTimestamp + BigInt(channelData.getLength())) {
                     channelData.addUser(authorID, messageTimestamp);
                     await database.setChannel(channelData);
                 } else {
@@ -227,30 +228,33 @@ async function printUsage(channel, command) {
     switch (command) {
         case "help":
             output = "```" + prefix + "help [command]```";
-            output += "\nLists commands. If given a command, describes usage of command."
+            output += "Lists commands. If given a command, describes usage of command."
             break;
         case "info":
             output = "```" + prefix + "info```";
-            output += "\nPrints info about the bot and a link to the code.";
+            output += "Prints info about the bot and a link to the code.";
             break;
         case "remove":
             output = "```" + prefix + "remove```";
-            output += "\nRemoves a slowmode in the current channel. Can not remove a slowmode that you are subject to. This can be due to permissions, your role being included, or you being specially included.";
+            output += "Removes a slowmode in the current channel. Can not remove a slowmode that you are subject to. This can be due to permissions, your role being included, or you being specially included.";
             break;
         case "set":
             output = "```" + prefix + "set <length> [--exclude <user(s)>] [--include <user(s)>]```";
-            output += "\nSets a slowmode using the given length (in the format: `1y 1d 1h 1m 1s`), and optionally excludes or includes users in this server.";
+            output += "Sets a slowmode using the given length (in the format: `1y 1d 1h 1m 1s`), and optionally excludes or includes users in this server.";
             output += "\nCan only `--include` people in a lower role than you and people who are not already `--excluded` (and vice versa).";
+            output += "\nLength must be at least 1 second and no more than 292471208 years, 247 days, 7 hours, 12 minutes, and 55 seconds.";
             break;
         case "set-image":
             output = "```" + prefix + "set-image <length> [--exclude <user(s)>] [--include <user(s)>]```";
-            output += "\nSets a slowmode just for images using the given length (in the format: `1y 1d 1h 1m 1s`), and optionally excludes or includes users in this server."
+            output += "Sets a slowmode just for images using the given length (in the format: `1y 1d 1h 1m 1s`), and optionally excludes or includes users in this server."
             output += "\nCan only `--include` people in a lower role than you and people who are not already `--excluded` (and vice versa).";
+            output += "\nLength must be at least 1 second and no more than 292471208 years, 247 days, 7 hours, 12 minutes, and 55 seconds.";
             break;
         case "set-text":
             output = "```" + prefix + "set-text <length> [--exclude <user(s)>] [--include <user(s)>]```";
-            output += "\nSets a slowmode just for text using the given length (in the format: `1y 1d 1h 1m 1s`), and optionally excludes or includes users in this server."
+            output += "Sets a slowmode just for text using the given length (in the format: `1y 1d 1h 1m 1s`), and optionally excludes or includes users in this server."
             output += "\nCan only `--include` people in a lower role than you and people who are not already `--excluded` (and vice versa).";
+            output += "\nLength must be at least 1 second and no more than 292471208 years, 247 days, 7 hours, 12 minutes, and 55 seconds.";
             break;
         default:
             output = "Commands: `help`, `info`, `remove`, `set`, `set-image`, `set-text`.";
@@ -309,7 +313,7 @@ async function setCommand(command, channel, author, parameters, slowmodeType) {
     }
 
     // instantiate slowmode settings
-    let length = 0;
+    let length = 0n;
     let userExclusions = [];
     let userInclusions = [];
     let roleExclusions = [];
@@ -336,34 +340,31 @@ async function setCommand(command, channel, author, parameters, slowmodeType) {
             }
         // if the parameter starts with a number it can only be the length
         } else if (parameter.match(/^\d/)) {
-            // enforce that time is only added once
-            if (!timeHasBeenAdded) {
-                timeHasBeenAdded = true;
-            } else {
+            timeHasBeenAdded = true;
+            isExcluding = null;
+
+            let addedTime;
+            try {
+                // if properly formatted "15m", will remove the m and leave 15
+                addedTime = BigInt(parameter.slice(0, -1));
+            } catch (e) { // example: 15min. must be 15m
                 printUsage(channel, command);
                 return;
             }
 
-            // if properly formatted "15m", will remove the m and leave 15
-            let addedTime = parameter.slice(0, -1);
-            // should only be the case if improperly formatted
-            if (isNaN(addedTime)) {
-                printUsage(channel, command);
-                return;
-            }
-            // switch statement breaks everything down to milliseconds and adds it to `length`
+            // switch statement breaks everything down to milliseconds and adds it to length
             // noinspection FallThroughInSwitchStatementJS
             switch (parameter.slice(-1)) {
                 case "y":
-                    addedTime *= 365;
+                    addedTime *= 365n;
                 case "d":
-                    addedTime *= 24;
+                    addedTime *= 24n;
                 case "h":
-                    addedTime *= 60;
+                    addedTime *= 60n;
                 case "m":
-                    addedTime *= 60;
+                    addedTime *= 60n;
                 case "s":
-                    addedTime *= 1000;
+                    addedTime *= 1000n;
                     break;
                 default:
                     printUsage(channel, command);
@@ -372,6 +373,11 @@ async function setCommand(command, channel, author, parameters, slowmodeType) {
             length += addedTime;
         // this string must contain the parameter passed to an option: the tag of a user or role to exclude/include
         } else {
+            // if we were given a tag but we are not excluding or including, something is wrong
+            if (isExcluding === null) {
+                printUsage(channel, command);
+                return;
+            }
             // test to see if it contains channel or user tags, any number of them (at least 1), and nothing more
             if (!new RegExp(/^(<(@|@!|@&)(\d{1,20}?)>)+$/).test(parameter)) {
                 printUsage(channel, command);
@@ -414,8 +420,13 @@ async function setCommand(command, channel, author, parameters, slowmodeType) {
         return;
     }
 
+    if (length === 0n) {
+        printUsage(channel, command);
+        return;
+    }
+
     database.setChannel(new ChannelData2(channel.id, channel.guild.id, length, slowmodeType, userExclusions, userInclusions, roleExclusions, roleInclusions, [], [])).then(() => {
-        channel.send(`${author}, ` + getPrettyTime(length / 1000) + `${slowmodeType === true ? "text" : slowmodeType === false ? "image" : "text and image"} slowmode has been set!`);
+        channel.send(`${author}, ` + getPrettyTime(length / 1000n) + `${slowmodeType === true ? "text" : slowmodeType === false ? "image" : "text and image"} slowmode has been set!`);
     });
 }
 
@@ -483,11 +494,11 @@ function isMorePowerfulThanRole(guild, guildMember, role) {
 }
 
 function getPrettyTime(totalSeconds) {
-    let years = Math.floor(totalSeconds / 31536000);
-    let days = Math.floor(totalSeconds % 31536000 / 86400);
-    let hours = Math.floor(totalSeconds % 86400 / 3600);
-    let minutes = Math.floor(totalSeconds % 3600 / 60);
-    let seconds = Math.floor(totalSeconds % 60);
+    let years = totalSeconds / 31536000n;
+    let days = totalSeconds % 31536000n / 86400n;
+    let hours = totalSeconds % 86400n / 3600n;
+    let minutes = totalSeconds % 3600n / 60n;
+    let seconds = totalSeconds % 60n;
 
     return (years > 0 ? `${years} year` + (years > 1 ? "s " : " ") : "") + (days > 0 ? `${days} day` + (days > 1 ? "s " : " ") : "")
         + (hours > 0 ? `${hours} hour` + (hours > 1 ? "s " : " ") : "") + (minutes > 0 ? `${minutes} minute` + (minutes > 1 ? "s " : " ") : "")
