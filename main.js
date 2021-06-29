@@ -242,23 +242,24 @@ async function printUsage(channel, command) {
             output = "```" + prefix + "set <length> [--exclude <user(s)>] [--include <user(s)>]```";
             output += "Sets a slowmode using the given length (in the format: `1y 1d 1h 1m 1s`), and optionally excludes or includes users in this server.";
             output += "\nCan only `--include` people in a lower role than you and people who are not already `--excluded` (and vice versa).";
-            output += "\nLength must be at least 1 second and no more than 292471208 years, 247 days, 7 hours, 12 minutes, and 55 seconds.";
+            output += "\nLength must be at least 1 second and no more than 1 year.";
             break;
         case "set-image":
             output = "```" + prefix + "set-image <length> [--exclude <user(s)>] [--include <user(s)>]```";
             output += "Sets a slowmode just for images using the given length (in the format: `1y 1d 1h 1m 1s`), and optionally excludes or includes users in this server."
             output += "\nCan only `--include` people in a lower role than you and people who are not already `--excluded` (and vice versa).";
-            output += "\nLength must be at least 1 second and no more than 292471208 years, 247 days, 7 hours, 12 minutes, and 55 seconds.";
+            output += "\nLength must be at least 1 second and no more than 1 year.";
             break;
         case "set-text":
             output = "```" + prefix + "set-text <length> [--exclude <user(s)>] [--include <user(s)>]```";
             output += "Sets a slowmode just for text using the given length (in the format: `1y 1d 1h 1m 1s`), and optionally excludes or includes users in this server."
             output += "\nCan only `--include` people in a lower role than you and people who are not already `--excluded` (and vice versa).";
-            output += "\nLength must be at least 1 second and no more than 292471208 years, 247 days, 7 hours, 12 minutes, and 55 seconds.";
+            output += "\nLength must be at least 1 second and no more than 1 year.";
             break;
         default:
             output = "Commands: `help`, `info`, `remove`, `set`, `set-image`, `set-text`.";
-            output += "\nPrefix: `" + prefix + "`";
+            output += "\n\nYou can enter `" + prefix + "help [command]` to get help for a specific command."
+            output += "\nExample: `" + prefix + "help set`.";
             break;
     }
     printOutput(channel, output)
@@ -320,7 +321,6 @@ async function setCommand(command, channel, author, parameters, slowmodeType) {
     let roleInclusions = [];
 
     let isExcluding = null;
-    let timeHasBeenAdded = false;
 
     // parse each parameter
     for (let i = 0; i < parameters.length; i++) {
@@ -340,7 +340,6 @@ async function setCommand(command, channel, author, parameters, slowmodeType) {
             }
         // if the parameter starts with a number it can only be the length
         } else if (parameter.match(/^\d/)) {
-            timeHasBeenAdded = true;
             isExcluding = null;
 
             let addedTime;
@@ -415,12 +414,8 @@ async function setCommand(command, channel, author, parameters, slowmodeType) {
             }
         }
     }
-    if (!timeHasBeenAdded) {
-        printUsage(channel, command);
-        return;
-    }
-
-    if (length === 0n) {
+    // limit slowmode length to 1 year
+    if (length === 0n || length > 31536000000n) {
         printUsage(channel, command);
         return;
     }
@@ -494,15 +489,19 @@ function isMorePowerfulThanRole(guild, guildMember, role) {
 }
 
 function getPrettyTime(totalSeconds) {
-    let years = totalSeconds / 31536000n;
-    let days = totalSeconds % 31536000n / 86400n;
-    let hours = totalSeconds % 86400n / 3600n;
-    let minutes = totalSeconds % 3600n / 60n;
-    let seconds = totalSeconds % 60n;
+    const years = totalSeconds / 31536000n;
+    const days = totalSeconds % 31536000n / 86400n;
+    const hours = totalSeconds % 86400n / 3600n;
+    const minutes = totalSeconds % 3600n / 60n;
+    const seconds = totalSeconds % 60n;
 
-    return (years > 0 ? `${years} year` + (years > 1 ? "s " : " ") : "") + (days > 0 ? `${days} day` + (days > 1 ? "s " : " ") : "")
-        + (hours > 0 ? `${hours} hour` + (hours > 1 ? "s " : " ") : "") + (minutes > 0 ? `${minutes} minute` + (minutes > 1 ? "s " : " ") : "")
-        + (seconds > 0 ? `${seconds} second` + (seconds > 1 ? "s " : " ") : "");
+    let string = seconds > 0 ? `${seconds} second` + (seconds > 1 ? "s " : " ") : "";
+    string = (minutes > 0 ? `${minutes} minute` + (minutes > 1 ? "s" : "") + (string.length > 0 ? ", " : " ") : "") + string;
+    string = (hours > 0 ? `${hours} hour` + (hours > 1 ? "s" : "") + (string.length > 0 ? ", " : " ") : "") + string;
+    string = (days > 0 ? `${days} day` + (days > 1 ? "s" : "") + (string.length > 0 ? ", " : " ") : "") + string;
+    string = (years > 0 ? `${years} year` + (years > 1 ? "s" : "") + (string.length > 0 ? ", " : " ") : "") + string;
+
+    return string;
 }
 
 client.login(config["bot-token"]);

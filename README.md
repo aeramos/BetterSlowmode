@@ -13,7 +13,7 @@ channels. With the bot, users can specify which types of content will be blocked
 text or images or both. They can even specifically include or exclude certain members to/from the slowmode!
 
 BetterSlowmode is designed for as much customization as possible. Your slowmodes can be as short as
-1 second, or as long as 292471208 years, 247 days, 7 hours, 12 minutes, and 55 seconds!
+1 second, or as long as a year!
 
 ## Invite the bot to your server!
 Coming soon! Once the codebase becomes stable and after I add more tools for automatically cleaning
@@ -22,7 +22,7 @@ with instructions below!
 
 ## Install
 1. Install and configure Postgres server
-2. Setup `config.json` (use `config.json.example`)
+2. Setup `config.json` (use `config.json.example` as a base)
 3. `npm install`
 
 ## Usage
