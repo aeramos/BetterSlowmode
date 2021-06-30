@@ -122,19 +122,19 @@ client.on("message", async (message) => {
             case "set":
                 if (checkUsagePermissions(message.member, channel, [[Discord.Permissions.FLAGS.MANAGE_CHANNELS, "Manage Channel"]], [[Discord.Permissions.FLAGS.MANAGE_MESSAGES, "Manage Messages"]])) {
                     parameters.shift();
-                    await setCommand("set", channel, message.author, parameters, null);
+                    await setCommand("set", channel, message.member, parameters, null);
                 }
                 break;
             case "set-image":
                 if (checkUsagePermissions(message.member, channel, [[Discord.Permissions.FLAGS.MANAGE_CHANNELS, "Manage Channel"]], [[Discord.Permissions.FLAGS.MANAGE_MESSAGES, "Manage Messages"]])) {
                     parameters.shift();
-                    await setCommand("set-image", channel, message.author, parameters, false);
+                    await setCommand("set-image", channel, message.member, parameters, false);
                 }
                 break;
             case "set-text":
                 if (checkUsagePermissions(message.member, channel, [[Discord.Permissions.FLAGS.MANAGE_CHANNELS, "Manage Channel"]], [[Discord.Permissions.FLAGS.MANAGE_MESSAGES, "Manage Messages"]])) {
                     parameters.shift();
-                    await setCommand("set-text", channel, message.author, parameters, true);
+                    await setCommand("set-text", channel, message.member, parameters, true);
                 }
                 break;
             default:
@@ -434,7 +434,7 @@ async function handleExclusions(guild, author, mentions, exclusions, inclusions,
     for (let i = 0; i < mentions.length; i++) {
         const mentionID = mentions[i];
 
-        let mentionObject = await guild.members.fetch({user: [mentionID], force: false});
+        let mentionObject = await guild.members.fetch({user: mentionID, force: false});
         if (isExcluding) {
             if (inclusions.includes(mentionID)) {
                 return false;
@@ -471,10 +471,10 @@ function isMorePowerfulThanMember(guild, guildMember1, guildMember2) {
     }
 
     // if one of the members is the owner
-    if (guildMember1.id === guild.owner.id) {
+    if (guildMember1.id === guild.ownerID) {
         return true;
     }
-    if (guildMember2.id === guild.owner.id) {
+    if (guildMember2.id === guild.ownerID) {
         return false;
     }
 
@@ -482,7 +482,7 @@ function isMorePowerfulThanMember(guild, guildMember1, guildMember2) {
 }
 
 function isMorePowerfulThanRole(guild, guildMember, role) {
-    if (guildMember.id === guild.owner.id) {
+    if (guildMember.id === guild.ownerID) {
         return true;
     }
     return guildMember.roles.highest.comparePositionTo(role) > 0;
