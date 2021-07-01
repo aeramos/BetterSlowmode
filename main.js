@@ -31,16 +31,18 @@ process.on("SIGTERM", shutDownBot);
 
 client.on("ready", async () => {
     console.log(`Logged in as ${client.user.tag}`);
-    client.user.setActivity("%help for help!");
 
-    initializeBot().then(() => {
+    await initializeBot().then(() => {
         console.log("Database clean. Bot ready!");
-    });
+    }).then(() => {
+        client.user.setActivity("%help for help!")
+    })
 });
 
+// set up the database and remove channels that are no longer valid
 async function initializeBot() {
-    let serverIDs = client.guilds.cache.keyArray();
-    let channelIDs = client.channels.cache.filter(channel => channel.type === "text").keyArray();
+    const serverIDs = client.guilds.cache.keyArray();
+    const channelIDs = client.channels.cache.filter(channel => channel.type === "text").keyArray();
 
     await Database.build(config["database-url"]).then(async (db) => {
         database = db;
@@ -58,15 +60,15 @@ function shutDownBot(signal) {
     })
 }
 
-client.on("guildDelete", guild => {
-    database.removeServer(guild.id);
+client.on("guildDelete", async (guild) => {
+    await database.removeServer(guild.id);
 });
 
-client.on("channelDelete", channel => {
+client.on("channelDelete", async (channel) => {
     if (channel.type !== "text") {
         return; // we only manage guild text channels
     }
-    database.removeChannel(channel.id);
+    await database.removeChannel(channel.id);
 });
 
 client.on("message", async (message) => {
@@ -82,7 +84,7 @@ client.on("message", async (message) => {
     const authorID = message.author.id;
     const channel = message.channel;
     const channelID = channel.id;
-    let channelData = await database.getChannel(channelID);
+    const channelData = await database.getChannel(channelID);
 
     if (channelData !== null && channelData.getLength() !== 0) {
         if (subjectToSlowmode(message.member, channel, channelData)) {
@@ -108,7 +110,7 @@ client.on("message", async (message) => {
 
         switch (parameters[0]) {
             case "help":
-                printUsage(channel, parameters[1]);
+                await printUsage(channel, parameters[1]);
                 break;
             case "info":
                 infoCommand(channel);
@@ -138,7 +140,7 @@ client.on("message", async (message) => {
                 }
                 break;
             default:
-                printUsage(channel, undefined);
+                await printUsage(channel, undefined);
         }
     }
 });
@@ -296,7 +298,7 @@ function removeCommand(channel, author) {
                 channel.send(`${author}, the slowmode has been removed from this channel.`);
             });
         } else {
-            channel.send(`${author}, you cannot remove this slowmode because you are subject to it!`);
+            channel.send(`${author}, you cannot remove this slowmode because you are subject to it.`);
         }
     });
 }
@@ -309,23 +311,21 @@ function removeCommand(channel, author) {
  */
 async function setCommand(command, channel, author, parameters, slowmodeType) {
     if (parameters.length === 0) {
-        printUsage(channel, command);
+        await printUsage(channel, command);
         return;
     }
 
     // instantiate slowmode settings
     let length = 0n;
-    let userExclusions = [];
-    let userInclusions = [];
-    let roleExclusions = [];
-    let roleInclusions = [];
+    const userExclusions = [];
+    const userInclusions = [];
+    const roleExclusions = [];
+    const roleInclusions = [];
 
     let isExcluding = null;
 
     // parse each parameter
-    for (let i = 0; i < parameters.length; i++) {
-        let parameter = parameters[i];
-
+    for (let parameter of parameters) {
         if (parameter.startsWith("--")) {
             switch (parameter.slice(2)) {
                 case "exclude":
@@ -335,7 +335,7 @@ async function setCommand(command, channel, author, parameters, slowmodeType) {
                     isExcluding = false;
                     break;
                 default:
-                    printUsage(channel, command);
+                    await printUsage(channel, command);
                     return;
             }
         // if the parameter starts with a number it can only be the length
@@ -347,7 +347,7 @@ async function setCommand(command, channel, author, parameters, slowmodeType) {
                 // if properly formatted "15m", will remove the m and leave 15
                 addedTime = BigInt(parameter.slice(0, -1));
             } catch (e) { // example: 15min. must be 15m
-                printUsage(channel, command);
+                await printUsage(channel, command);
                 return;
             }
 
@@ -366,7 +366,7 @@ async function setCommand(command, channel, author, parameters, slowmodeType) {
                     addedTime *= 1000n;
                     break;
                 default:
-                    printUsage(channel, command);
+                    await printUsage(channel, command);
                     return;
             }
             length += addedTime;
@@ -374,17 +374,17 @@ async function setCommand(command, channel, author, parameters, slowmodeType) {
         } else {
             // if we were given a tag but we are not excluding or including, something is wrong
             if (isExcluding === null) {
-                printUsage(channel, command);
+                await printUsage(channel, command);
                 return;
             }
             // test to see if it contains channel or user tags, any number of them (at least 1), and nothing more
             if (!new RegExp(/^(<(@|@!|@&)(\d{1,20}?)>)+$/).test(parameter)) {
-                printUsage(channel, command);
+                await printUsage(channel, command);
                 return;
             }
 
             // put each mention in an array that just contains the id
-            let userMentions = [];
+            const userMentions = [];
             let temp = parameter.match(/(<@(\d{1,20}?)>)/g);
             if (temp !== null) {
                 temp.forEach((e, i, a) => a[i] = e.slice(2, -1))
@@ -404,22 +404,23 @@ async function setCommand(command, channel, author, parameters, slowmodeType) {
                 roleMentions = temp;
             }
 
-            if (await Promise.all([handleExclusions(channel.guild, author, userMentions, userExclusions, userInclusions, isExcluding, true),
-            handleExclusions(channel.guild, author, roleMentions, roleExclusions, roleInclusions, isExcluding, false)]).then(results =>
-            {
-                return results.includes(false);
-            })) {
-                printUsage(channel, command);
+            // place the exclusions/inclusions into their respective arrays. cancel the set operation if there is an error
+            if (await Promise.all([
+            handleExclusions(channel.guild, author, userMentions, userExclusions, userInclusions, isExcluding, true),
+            handleExclusions(channel.guild, author, roleMentions, roleExclusions, roleInclusions, isExcluding, false)])
+            .then(results => { return results.includes(false);})) {
+                await printUsage(channel, command);
                 return;
             }
         }
     }
     // limit slowmode length to 1 year
     if (length === 0n || length > 31536000000n) {
-        printUsage(channel, command);
+        await printUsage(channel, command);
         return;
     }
 
+    // set the slowmode in the database and tell the Discord user it's done.
     database.setChannel(new ChannelData2(channel.id, channel.guild.id, length, slowmodeType, userExclusions, userInclusions, roleExclusions, roleInclusions, [], [])).then(() => {
         channel.send(`${author}, ` + getPrettyTime(length / 1000n) + `${slowmodeType === true ? "text" : slowmodeType === false ? "image" : "text and image"} slowmode has been set!`);
     });
@@ -431,9 +432,7 @@ async function setCommand(command, channel, author, parameters, slowmodeType) {
     returns true if no error, false otherwise
  */
 async function handleExclusions(guild, author, mentions, exclusions, inclusions, isExcluding, isMember) {
-    for (let i = 0; i < mentions.length; i++) {
-        const mentionID = mentions[i];
-
+    for (const mentionID of mentions) {
         let mentionObject = await guild.members.fetch({user: mentionID, force: false});
         if (isExcluding) {
             if (inclusions.includes(mentionID)) {
@@ -460,7 +459,6 @@ async function handleExclusions(guild, author, mentions, exclusions, inclusions,
             }
         }
     }
-
     return true;
 }
 

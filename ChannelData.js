@@ -98,7 +98,7 @@ class ChannelData {
     }
 
     getUserTime(id) {
-        let index = this.#users.indexOf(id);
+        const index = this.#users.indexOf(id);
         if (index !== -1) {
             return BigInt(this.#userTimes[index]);
         } else {
@@ -107,7 +107,7 @@ class ChannelData {
     }
 
     addUser(id, time) {
-        let index = this.#users.indexOf(id);
+        const index = this.#users.indexOf(id);
         if (index !== -1) {
             this.#userTimes[index] = time;
         } else {

@@ -35,7 +35,7 @@ class Database {
 
     // used so that I can await this function and come back with a fully ready database that I can perform operations with
     static async build(databaseURL) {
-        let database = new Database(databaseURL);
+        const database = new Database(databaseURL);
         await database.initialize();
         return database;
     }
@@ -91,7 +91,7 @@ class Database {
 
     // returns ChannelData object
     async getChannel(id) {
-        let model = await this.getDBObject(id);
+        const model = await this.getDBObject(id);
         if (model === null) {
             return null;
         }
@@ -159,14 +159,14 @@ class Database {
 
     async sanitizeDatabase(serverIDs, channelIDs) {
         // remove channels from servers we are no longer in
-        await Promise.all([this.#ChannelData.destroy({
+        await Promise.all([
+        this.#ChannelData.destroy({
             where: {
                 serverID: {
                     [Op.notIn]: serverIDs
                 }
             }
         }),
-
         // remove channels that were deleted
         this.#ChannelData.destroy({
             where: {
