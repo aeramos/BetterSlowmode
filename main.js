@@ -433,7 +433,6 @@ async function setCommand(command, channel, author, parameters, slowmodeType) {
  */
 async function handleExclusions(guild, author, mentions, exclusions, inclusions, isExcluding, isMember) {
     for (const mentionID of mentions) {
-        let mentionObject = await guild.members.fetch({user: mentionID, force: false});
         if (isExcluding) {
             if (inclusions.includes(mentionID)) {
                 return false;
@@ -443,11 +442,11 @@ async function handleExclusions(guild, author, mentions, exclusions, inclusions,
             }
         } else {
             if (isMember) {
-                if (!isMorePowerfulThanMember(guild, author, mentionObject)) {
+                if (!isMorePowerfulThanMember(guild, author, await guild.members.fetch({user: mentionID, cache: true, force: true}))) {
                     return false;
                 }
             } else {
-                if (!isMorePowerfulThanRole(guild, author, mentionObject)) {
+                if (!isMorePowerfulThanRole(guild, author, await guild.roles.fetch(mentionID, true, true))) {
                     return false;
                 }
             }

@@ -14,7 +14,7 @@
     "url": "https://github.com/aeramos/BetterSlowmode/issues"
   },
   "dependencies": {
-    "discord.js": "^12.2.0",
+    "discord.js": "^12.3.1",
     "pg": "^7.4.1",
     "pg-hstore": "^2.3.3",
     "sequelize": "^6.6.2"
