@@ -86,7 +86,7 @@ client.on("message", async (message) => {
     const channelID = channel.id;
     const channelData = await database.getChannel(channelID);
 
-    if (channelData !== null && channelData.getLength() !== 0) {
+    if (channelData !== null) {
         if (subjectToSlowmode(message.member, channel, channelData)) {
             // if both text and images, check slowmode. if just images + it has an image, check slowmode. if text + it has text, check slowmode.
             if (channelData.isBoth() || (channelData.isImage() && message.attachments.size > 0) || (channelData.isText() && message.content.length > 0)) {
@@ -117,7 +117,6 @@ client.on("message", async (message) => {
                 break;
             case "remove":
                 if (checkUsagePermissions(message.member, channel, [[Discord.Permissions.FLAGS.MANAGE_CHANNELS, "Manage Channel"]], [[]])) {
-                    parameters.shift();
                     removeCommand(channel, message.member);
                 }
                 break;
@@ -244,21 +243,24 @@ async function printUsage(channel, command) {
             output += "Removes a slowmode in the current channel. Can not remove a slowmode that you are subject to. This can be due to permissions, your role being included, or you being specially included.";
             break;
         case "set":
-            output = "```" + prefix + "set <length> [--exclude <user(s)>] [--include <user(s)>]```";
-            output += "Sets a slowmode using the given length (in the format: `1y 1d 1h 1m 1s`), and optionally excludes or includes users in this server.";
-            output += "\nCan only `--include` people in a lower role than you and people who are not already `--excluded` (and vice versa).";
+            output = "```" + prefix + "set <length> [--exclude <users/roles>] [--include <users/roles>]```";
+            output += "Sets a slowmode using the given length (in the format: `1y 1d 1h 1m 1s`), and optionally excludes or includes users or roles in this server."
+            output += "\nYou can only `--include` users or roles that are less powerful than you.";
+            output += "\nYou can not `--include` users/roles that have already been `--excluded`, and vice versa.";
             output += "\nLength must be at least 1 second and no more than 1 year.";
             break;
         case "set-image":
-            output = "```" + prefix + "set-image <length> [--exclude <user(s)>] [--include <user(s)>]```";
-            output += "Sets a slowmode just for images using the given length (in the format: `1y 1d 1h 1m 1s`), and optionally excludes or includes users in this server."
-            output += "\nCan only `--include` people in a lower role than you and people who are not already `--excluded` (and vice versa).";
+            output = "```" + prefix + "set-image <length> [--exclude <users/roles>] [--include <users/roles>]```";
+            output += "Sets a slowmode just for images using the given length (in the format: `1y 1d 1h 1m 1s`), and optionally excludes or includes users or roles in this server."
+            output += "\nYou can only `--include` users or roles that are less powerful than you.";
+            output += "\nYou can not `--include` users/roles that have already been `--excluded`, and vice versa.";
             output += "\nLength must be at least 1 second and no more than 1 year.";
             break;
         case "set-text":
-            output = "```" + prefix + "set-text <length> [--exclude <user(s)>] [--include <user(s)>]```";
-            output += "Sets a slowmode just for text using the given length (in the format: `1y 1d 1h 1m 1s`), and optionally excludes or includes users in this server."
-            output += "\nCan only `--include` people in a lower role than you and people who are not already `--excluded` (and vice versa).";
+            output = "```" + prefix + "set-text <length> [--exclude <users/roles>] [--include <users/roles>]```";
+            output += "Sets a slowmode just for text using the given length (in the format: `1y 1d 1h 1m 1s`), and optionally excludes or includes users or roles in this server."
+            output += "\nYou can only `--include` users or roles that are less powerful than you.";
+            output += "\nYou can not `--include` users/roles that have already been `--excluded`, and vice versa.";
             output += "\nLength must be at least 1 second and no more than 1 year.";
             break;
         case "status":
@@ -297,12 +299,12 @@ function infoCommand(channel) {
 function removeCommand(channel, author) {
     database.getChannel(channel.id).then(channelData => {
         if (channelData === null) {
-            channel.send(`${author}, there is no slowmode on this channel to remove.`);
+            channel.send("There is no slowmode on this channel to remove.");
             return;
         }
         if (!subjectToSlowmode(author, channel, channelData)) {
             database.removeChannel(channel.id).then(() => {
-                channel.send(`${author}, the slowmode has been removed from this channel.`);
+                channel.send("The slowmode has been removed from this channel.");
             });
         } else {
             channel.send(`${author}, you cannot remove this slowmode because you are subject to it.`);
@@ -429,7 +431,7 @@ async function setCommand(command, channel, author, parameters, slowmodeType) {
 
     // set the slowmode in the database and tell the Discord user it's done.
     database.setChannel(new ChannelData2(channel.id, channel.guild.id, length, slowmodeType, userExclusions, userInclusions, roleExclusions, roleInclusions, [], [])).then(() => {
-        channel.send(`${author}, ` + getPrettyTime(length / 1000n) + `${slowmodeType === true ? "text" : slowmodeType === false ? "image" : "text and image"} slowmode has been set!`);
+        channel.send(getPrettyTime(length / 1000n) + `${slowmodeType === true ? "text" : slowmodeType === false ? "image" : "text and image"} slowmode has been set!`);
     });
 }
 
