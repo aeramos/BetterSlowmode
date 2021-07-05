@@ -139,6 +139,9 @@ client.on("message", async (message) => {
                     await setCommand("set-text", channel, message.member, parameters, true);
                 }
                 break;
+            case "status":
+                await statusCommand(channel, channelData);
+                break;
             default:
                 await printUsage(channel, undefined);
         }
@@ -258,8 +261,12 @@ async function printUsage(channel, command) {
             output += "\nCan only `--include` people in a lower role than you and people who are not already `--excluded` (and vice versa).";
             output += "\nLength must be at least 1 second and no more than 1 year.";
             break;
+        case "status":
+            output = "```" + prefix + "status```";
+            output += "Prints the length and special inclusions/exclusions of the slowmode in the current channel, if there is one.";
+            break;
         default:
-            output = "Commands: `help`, `info`, `remove`, `set`, `set-image`, `set-text`.";
+            output = "Commands: `help`, `info`, `remove`, `set`, `set-image`, `set-text`, `status`.";
             output += "\n\nYou can enter `" + prefix + "help [command]` to get help for a specific command."
             output += "\nExample: `" + prefix + "help set`.";
             break;
@@ -499,6 +506,50 @@ function getPrettyTime(totalSeconds) {
     string = (years > 0 ? `${years} year` + (years > 1 ? "s" : "") + (string.length > 0 ? ", " : " ") : "") + string;
 
     return string;
+}
+
+async function statusCommand(channel, channelData) {
+    let output;
+    if (channelData !== null) {
+        let length = getPrettyTime(channelData.getLength() / 1000n);
+
+        // convert "12 seconds slowmode" to "12 second slowmode"
+        if (length.endsWith("s ")) {
+            length = length.slice(0, -2) + " ";
+        }
+
+        output = "There is a " + length + (channelData.getType() === null ? "" : channelData.getType() ? "text " : "image ") + "slowmode in this channel.";
+        let includes = channelData.getRoleIncludes().length === 0 ? "" : " It specially includes: " + (await getDiscordRoleTags(channel.guild, channelData.getRoleIncludes())).join(", ");
+        includes +=    channelData.getUserIncludes().length === 0 ? "" : (includes === "" ? " It specially includes: " : ", ") + (await getDiscordUserTags(channel.guild, channelData.getUserIncludes())).join(", ");
+        includes += includes === "" ? "" : ".";
+
+        let excludes = channelData.getRoleExcludes().length === 0 ? "" : " It specially excludes: " + (await getDiscordRoleTags(channel.guild, channelData.getRoleExcludes())).join(", ");
+        excludes +=    channelData.getUserExcludes().length === 0 ? "" : (excludes === "" ? " It specially excludes: " : ", ") + (await getDiscordUserTags(channel.guild, channelData.getUserExcludes())).join(", ");
+        excludes += excludes === "" ? "" : ".";
+
+        output += includes + excludes;
+    } else {
+        output = "There is no slowmode on this channel.";
+    }
+    channel.send(output);
+}
+
+async function getDiscordUserTags(guild, userIDs) {
+    const array = [];
+    for (const member of await guild.members.fetch({user: userIDs, withPresences: false, force: true})) {
+        array.push("@" + member[1].user.tag);
+    }
+    return array;
+}
+
+async function getDiscordRoleTags(guild, roleIDs) {
+    const array = [];
+    for (const role of await guild.roles.cache) {
+        if (roleIDs.includes(role[0])) {
+            array.push("@" + role[1].name);
+        }
+    }
+    return array;
 }
 
 client.login(config["bot-token"]);
