@@ -1,6 +1,6 @@
 /*
+ * This file is part of BetterSlowmode.
  * Copyright (C) 2021 Alejandro Ramos
- * This file is part of BetterSlowmode
  *
  * BetterSlowmode is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
