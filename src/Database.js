@@ -16,8 +16,8 @@
  * along with BetterSlowmode.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-const ChannelData2 = require("./ChannelData");
-const { Sequelize, DataTypes, Op } = require ("sequelize");
+const ChannelData = require("./ChannelData");
+const { Sequelize, DataTypes, Op } = require("sequelize");
 
 class Database {
     #sequelize;
@@ -95,7 +95,7 @@ class Database {
         if (model === null) {
             return null;
         }
-        return new ChannelData2(model.id, model.serverID, model.length, model.type, model.userExcludes, model.userIncludes, model.roleExcludes, model.roleIncludes, model.users, model.userTimes, model);
+        return new ChannelData(model.id, model.serverID, model.length, model.type, model.userExcludes, model.userIncludes, model.roleExcludes, model.roleIncludes, model.users, model.userTimes, model);
     }
 
     // returns an instance of a Sequelize model (row in db)

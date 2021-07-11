@@ -22,8 +22,9 @@ with instructions below!
 
 ## Install
 1. Install and configure Postgres server
-2. Setup `config.json` (use `config.json.example` as a base)
+2. Setup `config/config.json` (use `config/config.json.example` as a base)
 3. `npm install`
+4. `npm run build` to compile the TypeScript
 
 ## Usage
 Run the bot with:
@@ -38,6 +39,7 @@ Try some commands with the bot, use `%help` for more information.
 %set-image 1d --include @aeramos
 %set-text 1y
 %remove
+%status
 ```
 
 ## Developer
