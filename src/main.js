@@ -23,7 +23,7 @@ const config = require("../config/config.json");
 const Database = require("./Database");
 let database;
 
-const prefix = "%";
+const prefix = config["default-prefix"];
 
 const Help = require("./Commands/Help");
 const Info = require("./Commands/Info");
