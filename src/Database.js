@@ -158,23 +158,49 @@ class Database {
     }
 
     async sanitizeDatabase(serverIDs, channelIDs) {
-        // remove channels from servers we are no longer in
-        await Promise.all([
-        this.#ChannelData.destroy({
+        // if there are no servers or our servers have no text channels, delete all rows and exit
+        if (serverIDs.length === 0 || channelIDs.length === 0) {
+            await this.#ChannelData.destroy({
+                truncate: true
+            });
+            return;
+        }
+
+        // remove channels from servers we are no longer in and remove channels that were deleted
+        await this.#ChannelData.destroy({
             where: {
-                serverID: {
-                    [Op.notIn]: serverIDs
+                [Op.or]: {
+                    serverID: {
+                        [Op.notIn]: serverIDs
+                    },
+                    id: {
+                        [Op.notIn]: channelIDs
+                    }
                 }
             }
-        }),
-        // remove channels that were deleted
-        this.#ChannelData.destroy({
-            where: {
-                id: {
-                    [Op.notIn]: channelIDs
+        });
+
+
+        // remove users whose slowmodes have expired
+        // get all of the user arrays and userTime arrays and remove users whose times have now expired
+        for (const model of await this.#ChannelData.findAll({attributes: ["id", "length", "users", "userTimes"]})) {
+            const users = model.users.slice();
+            const userTimes = model.userTimes.slice();
+            let changed = false;
+            for (let i = 0; i < users.length; i++) {
+                if (Date.now() >= BigInt(userTimes[i]) + BigInt(model.length)) {
+                    users.splice(i, 1);
+                    userTimes.splice(i, 1);
+                    model.set("users", users);
+                    model.set("userTimes", userTimes);
+                    changed = true;
+                    i--;
                 }
             }
-        })]);
+            if (changed) {
+                await model.save();
+            }
+        }
     }
 
     async shutDown() {
