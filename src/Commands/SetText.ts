@@ -24,8 +24,6 @@ class SetText extends Set {
     public getHelp(): string {
         return "```" + this.prefix + "set-text <length> [--exclude <users/roles>] [--include <users/roles>]```" +
             "Sets a slowmode just for text using the given length (in the format: `1y 1d 1h 1m 1s`), and optionally excludes or includes users or roles in this server." +
-            "\nYou can only `--include` users or roles that are less powerful than you." +
-            "\nYou can not `--include` users/roles that have already been `--excluded`, and vice versa." +
             "\nLength must be at least 1 second and no more than 1 year.";
     }
 

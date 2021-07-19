@@ -24,7 +24,6 @@ import ChannelData = require("../ChannelData");
 class Info extends Command {
     public async command(channelData: ChannelData, parameters: string[], message: Discord.Message): Promise<string> {
         return "BetterSlowmode is a Discord bot that adds more depth and customization to text channel slowmodes." +
-            "\nBetterSlowmode is developed by Alejandro Ramos (Discord: `@aeramos#0979`) and released on GitHub under the GNU AGPL3+." +
             "\nView the source code here: https://github.com/aeramos/BetterSlowmode";
     }
 
