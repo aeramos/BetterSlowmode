@@ -37,12 +37,12 @@ class Remove extends Command {
         if (channelData === null) {
             return "There is no slowmode on this channel to remove.";
         }
-        if (!this.subjectToSlowmode(message.member, message.channel, channelData)) {
-            await this.database.removeChannel(message.channel.id);
-            return "The slowmode has been removed from this channel.";
-        } else {
+        if (this.subjectToSlowmode(message.member, message.channel, channelData)) {
             return `${message.author}, you cannot remove this slowmode because you are subject to it.`;
         }
+
+        await this.database.removeChannel(message.channel.id);
+        return "The slowmode has been removed from this channel.";
     }
 
     public getHelp(): string {

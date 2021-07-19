@@ -30,6 +30,7 @@ class Help extends Command {
     }
 
     public async command(channelData: ChannelData, parameters: string[], message: Discord.Message): Promise<string> {
+        // if a command is given, print help for that command
         if (parameters.length !== 0) {
             for (const command of this.commands) {
                 if (parameters[0] === command.getName()) {
@@ -38,6 +39,7 @@ class Help extends Command {
             }
         }
 
+        // if no valid commands are given, print a list of commands
         let output = "Commands: `" + this.commands[0].getName() + "`";
         for (let i = 1; i < this.commands.length; i++){
             output += ", `" + this.commands[i].getName() + "`"

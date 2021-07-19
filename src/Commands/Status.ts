@@ -23,28 +23,28 @@ import ChannelData = require("../ChannelData");
 
 class Status extends Command {
     public async command(channelData: ChannelData, parameters: string[], message: Discord.Message): Promise<string> {
-        let output;
-        if (channelData !== null) {
-            let length = Command.getPrettyTime(channelData.getLength() / BigInt(1000));
-
-            // convert "12 seconds slowmode" to "12 second slowmode"
-            if (length.endsWith("s ")) {
-                length = length.slice(0, -2) + " ";
-            }
-
-            output = "There is a " + length + (channelData.getType() === null ? "" : channelData.getType() ? "text " : "image ") + "slowmode in this channel.";
-            let includes = channelData.getRoleIncludes().length === 0 ? "" : " It specially includes: " + (await Status.getDiscordRoleTags(<Discord.Guild>message.guild, channelData.getRoleIncludes())).join(", ");
-            includes +=    channelData.getUserIncludes().length === 0 ? "" : (includes === "" ? " It specially includes: " : ", ") + (await Status.getDiscordUserTags(<Discord.Guild>message.guild, channelData.getUserIncludes())).join(", ");
-            includes += includes === "" ? "" : ".";
-
-            let excludes = channelData.getRoleExcludes().length === 0 ? "" : " It specially excludes: " + (await Status.getDiscordRoleTags(<Discord.Guild>message.guild, channelData.getRoleExcludes())).join(", ");
-            excludes +=    channelData.getUserExcludes().length === 0 ? "" : (excludes === "" ? " It specially excludes: " : ", ") + (await Status.getDiscordUserTags(<Discord.Guild>message.guild, channelData.getUserExcludes())).join(", ");
-            excludes += excludes === "" ? "" : ".";
-
-            output += includes + excludes;
-        } else {
-            output = "There is no slowmode on this channel.";
+        if (channelData === null) {
+            return "There is no slowmode on this channel.";
         }
+
+        let output;
+        let length = Command.getPrettyTime(channelData.getLength() / BigInt(1000));
+
+        // convert "12 seconds slowmode" to "12 second slowmode"
+        if (length.endsWith("s ")) {
+            length = length.slice(0, -2) + " ";
+        }
+
+        output = "There is a " + length + (channelData.getType() === null ? "" : channelData.getType() ? "text " : "image ") + "slowmode in this channel.";
+        let includes = channelData.getRoleIncludes().length === 0 ? "" : " It specially includes: " + (await Status.getDiscordRoleTags(<Discord.Guild>message.guild, channelData.getRoleIncludes())).join(", ");
+        includes +=    channelData.getUserIncludes().length === 0 ? "" : (includes === "" ? " It specially includes: " : ", ") + (await Status.getDiscordUserTags(<Discord.Guild>message.guild, channelData.getUserIncludes())).join(", ");
+        includes += includes === "" ? "" : ".";
+
+        let excludes = channelData.getRoleExcludes().length === 0 ? "" : " It specially excludes: " + (await Status.getDiscordRoleTags(<Discord.Guild>message.guild, channelData.getRoleExcludes())).join(", ");
+        excludes +=    channelData.getUserExcludes().length === 0 ? "" : (excludes === "" ? " It specially excludes: " : ", ") + (await Status.getDiscordUserTags(<Discord.Guild>message.guild, channelData.getUserExcludes())).join(", ");
+        excludes += excludes === "" ? "" : ".";
+
+        output += includes + excludes;
         return output;
     }
 
