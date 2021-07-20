@@ -64,7 +64,7 @@ async function initializeBot() {
         new Set(prefix, database),
         new SetImage(prefix, database),
         new SetText(prefix, database),
-        new Status(prefix)
+        new Status(prefix, database)
     ];
     helpCommand = new Help(prefix, commands);
     commands.splice(0, 0, helpCommand);

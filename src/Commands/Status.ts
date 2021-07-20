@@ -20,11 +20,33 @@ import Discord = require("discord.js");
 import Command = require("./Command");
 // @ts-ignore
 import ChannelData = require("../ChannelData");
+// @ts-ignore
+import Database = require("../Database");
 
 class Status extends Command {
+    private readonly database: Database;
+
+    public constructor(prefix: string, database: Database) {
+        super(prefix);
+        this.database = database;
+    }
+
     public async command(channelData: ChannelData, parameters: string[], message: Discord.Message): Promise<string> {
+        let channelID: string = message.channel.id;
+        if (parameters.length > 0) {
+            if (parameters.length > 1) {
+                return `${message.author}, you gave this command too many parameters. Use \`` + this.prefix + "help " + this.getName() +"` for more info.";
+            }
+
+            if (new RegExp(/^<#\d{1,20}>$/).test(parameters[0])) {
+                channelID = parameters[0].slice(2, -1);
+                channelData = await this.database.getChannel(channelID);
+            } else {
+                return `${message.author}, invalid tag. Example: ${this.prefix}${this.getName()} <#${channelID}>`;
+            }
+        }
         if (channelData === null) {
-            return "There is no slowmode on this channel.";
+            return `There is no slowmode in <#${channelID}>.`;
         }
 
         let output;
@@ -35,7 +57,7 @@ class Status extends Command {
             length = length.slice(0, -2) + " ";
         }
 
-        output = "There is a " + length + (channelData.getType() === null ? "" : channelData.getType() ? "text " : "image ") + "slowmode in this channel.";
+        output = "There is a " + length + (channelData.getType() === null ? "" : channelData.getType() ? "text " : "image ") + "slowmode in <#" + channelID + ">.";
         let includes = channelData.getRoleIncludes().length === 0 ? "" : " It specially includes: " + (await Status.getDiscordRoleTags(<Discord.Guild>message.guild, channelData.getRoleIncludes())).join(", ");
         includes +=    channelData.getUserIncludes().length === 0 ? "" : (includes === "" ? " It specially includes: " : ", ") + (await Status.getDiscordUserTags(<Discord.Guild>message.guild, channelData.getUserIncludes())).join(", ");
         includes += includes === "" ? "" : ".";
@@ -49,8 +71,8 @@ class Status extends Command {
     }
 
     public getHelp(): string {
-        return "```" + this.prefix + "status```" +
-            "Prints the length and special inclusions/exclusions of the slowmode in the current channel, if there is one.";
+        return "```" + this.prefix + "status [#channel]```" +
+            "Prints the length and special inclusions/exclusions of the slowmode in the given channel, or the current channel if no channel is provided.";
     }
 
     public getName(): string {
