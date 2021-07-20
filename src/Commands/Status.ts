@@ -48,8 +48,8 @@ class Status extends Command {
         return output;
     }
 
-    public getHelp(prefix: string): string {
-        return "```" + prefix + "status```" +
+    public getHelp(): string {
+        return "```" + this.prefix + "status```" +
             "Prints the length and special inclusions/exclusions of the slowmode in the current channel, if there is one.";
     }
 

@@ -24,13 +24,13 @@ import ChannelData = require("../ChannelData");
 import Database = require("../Database");
 
 class Remove extends Command {
-    private readonly subjectToSlowmode: CallableFunction;
     private readonly database: Database;
+    private readonly subjectToSlowmode: CallableFunction;
 
-    public constructor(subjectToSlowmode: CallableFunction, database: Database) {
-        super();
-        this.subjectToSlowmode = subjectToSlowmode;
+    public constructor(prefix: string, database: Database, subjectToSlowmode: CallableFunction) {
+        super(prefix);
         this.database = database;
+        this.subjectToSlowmode = subjectToSlowmode;
     }
 
     public async command(channelData: ChannelData, parameters: string[], message: Discord.Message): Promise<string> {
@@ -45,8 +45,8 @@ class Remove extends Command {
         }
     }
 
-    public getHelp(prefix: string): string {
-        return "```" + prefix + "remove```" +
+    public getHelp(): string {
+        return "```" + this.prefix + "remove```" +
             "Removes a slowmode in the current channel. Can not remove a slowmode that you are subject to. This can be due to permissions, your role being included, or you being specially included.";
     }
 

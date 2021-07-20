@@ -28,8 +28,8 @@ class Info extends Command {
             "\nView the source code here: https://github.com/aeramos/BetterSlowmode";
     }
 
-    public getHelp(prefix: string): string {
-        return "```" + prefix + "info```" +
+    public getHelp(): string {
+        return "```" + this.prefix + "info```" +
             "Prints info about the bot and a link to the code.";
     }
 

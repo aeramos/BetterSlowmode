@@ -59,14 +59,14 @@ async function initializeBot() {
     });
 
     commands = [
-        new Info(),
-        new Remove(subjectToSlowmode, database),
-        new Set(database),
-        new SetImage(database),
-        new SetText(database),
-        new Status()
+        new Info(prefix),
+        new Remove(prefix, database, subjectToSlowmode),
+        new Set(prefix, database),
+        new SetImage(prefix, database),
+        new SetText(prefix, database),
+        new Status(prefix)
     ];
-    helpCommand = new Help(commands, prefix);
+    helpCommand = new Help(prefix, commands);
     commands.splice(0, 0, helpCommand);
 }
 

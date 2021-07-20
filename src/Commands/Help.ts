@@ -23,19 +23,17 @@ import ChannelData = require("../ChannelData");
 
 class Help extends Command {
     private readonly commands: Command[]
-    private readonly prefix: string;
 
-    public constructor(commands: Command[], prefix: string) {
-        super();
+    public constructor(prefix: string, commands: Command[]) {
+        super(prefix);
         this.commands = commands;
-        this.prefix = prefix;
     }
 
     public async command(channelData: ChannelData, parameters: string[], message: Discord.Message): Promise<string> {
         if (parameters.length !== 0) {
             for (const command of this.commands) {
                 if (parameters[0] === command.getName()) {
-                    return command.getHelp(this.prefix);
+                    return command.getHelp();
                 }
             }
         }
@@ -49,8 +47,8 @@ class Help extends Command {
         return output;
     }
 
-    public getHelp(prefix: string): string {
-        return "```" + prefix + "help [command]```" +
+    public getHelp(): string {
+        return "```" + this.prefix + "help [command]```" +
             "Lists commands. If given a command, describes usage of command.";
     }
 

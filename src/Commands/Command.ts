@@ -21,9 +21,15 @@ import ChannelData = require("../ChannelData")
 import Discord = require("discord.js");
 
 abstract class Command {
+    protected readonly prefix: string;
+
+    public constructor(prefix: string) {
+        this.prefix = prefix;
+    }
+
     public abstract command(channelData: ChannelData, parameters: string[], message: Discord.Message): Promise<string>;
 
-    public abstract getHelp(prefix: string) : string;
+    public abstract getHelp() : string;
 
     public abstract getName() : string;
 
