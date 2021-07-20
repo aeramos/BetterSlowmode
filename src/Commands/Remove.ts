@@ -34,20 +34,35 @@ class Remove extends Command {
     }
 
     public async command(channelData: ChannelData, parameters: string[], message: Discord.Message): Promise<string> {
-        if (channelData === null) {
-            return "There is no slowmode on this channel to remove.";
-        }
-        if (this.subjectToSlowmode(message.member, message.channel, channelData)) {
-            return `${message.author}, you cannot remove this slowmode because you are subject to it.`;
+        let channelID: string = message.channel.id;
+        if (parameters.length > 0) {
+            if (parameters.length > 1) {
+                return `${message.author}, you gave this command too many parameters. Use \`` + this.prefix + "help " + this.getName() +"` for more info.";
+            }
+
+            if (new RegExp(/^<#\d{1,20}>$/).test(parameters[0])) {
+                channelID = parameters[0].slice(2, -1);
+                channelData = await this.database.getChannel(channelID);
+            } else {
+                return `${message.author}, invalid tags. Example: ${this.prefix}${this.getName()} <#${channelID}>`;
+            }
         }
 
-        await this.database.removeChannel(message.channel.id);
-        return "The slowmode has been removed from this channel.";
+        if (channelData === null) {
+            return `There is no slowmode on <#${channelID}> to remove.`;
+        }
+        if (this.subjectToSlowmode(message.member, channelID, channelData)) {
+            return `${message.author}, you cannot remove the slowmode on <#${channelID}> because you are subject to it.`;
+        }
+
+        await this.database.removeChannel(channelID);
+        return `The slowmode has been removed from <#${channelID}> .`;
     }
 
     public getHelp(): string {
-        return "```" + this.prefix + "remove```" +
-            "Removes a slowmode in the current channel. Can not remove a slowmode that you are subject to. This can be due to permissions, your role being included, or you being specially included.";
+        return "```" + this.prefix + "remove [#channel]```" +
+            "Removes a slowmode in the given channel or the current channel." +
+            "\nCan not remove a slowmode that you are subject to. This can be due to permissions, your role being included, or you being specially included.";
     }
 
     public getName(): string {
