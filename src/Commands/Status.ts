@@ -79,14 +79,6 @@ class Status extends Command {
         return "status";
     }
 
-    public getUserPermissions(): Map<number, string> {
-        return new Map();
-    }
-
-    public getBotPermissions(): Map<number, string> {
-        return new Map();
-    }
-
     private static async getDiscordUserTags(guild: Discord.Guild, userIDs: string[]): Promise<string[]> {
         const array = [];
         for (const member of await guild.members.fetch({user: userIDs, withPresences: false, force: true})) {

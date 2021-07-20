@@ -33,6 +33,11 @@ class Set extends Command {
     }
 
     public async command(channelData: ChannelData, parameters: string[], message: Discord.Message): Promise<string> {
+        const missingPermissions = Command.getMissingPermissions(<Discord.GuildMember>message.member, <Discord.TextChannel>message.channel, new Map([[Discord.Permissions.FLAGS.MANAGE_CHANNELS, "Manage Channel"]]), new Map([[Discord.Permissions.FLAGS.MANAGE_MESSAGES, "Manage Messages"]]));
+        if (missingPermissions) {
+            return missingPermissions;
+        }
+
         const SLOWMODE_TYPE: boolean | null = (<typeof Set>this.constructor).SLOWMODE_TYPE;
 
         if (parameters.length === 0) {
@@ -170,14 +175,6 @@ class Set extends Command {
 
     public getName(): string {
         return "set";
-    }
-
-    public getUserPermissions(): Map<number, string> {
-        return new Map([[Discord.Permissions.FLAGS.MANAGE_CHANNELS, "Manage Channel"]]);
-    }
-
-    public getBotPermissions(): Map<number, string> {
-        return new Map([[Discord.Permissions.FLAGS.MANAGE_MESSAGES, "Manage Messages"]]);
     }
 
     /*

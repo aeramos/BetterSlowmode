@@ -35,13 +35,5 @@ class Info extends Command {
     public getName(): string {
         return "info";
     }
-
-    public getUserPermissions(): Map<number, string> {
-        return new Map();
-    }
-
-    public getBotPermissions(): Map<number, string> {
-        return new Map();
-    }
 }
 export = Info;

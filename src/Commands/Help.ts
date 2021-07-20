@@ -57,13 +57,5 @@ class Help extends Command {
     public getName(): string {
         return "help";
     }
-
-    public getUserPermissions(): Map<number, string> {
-        return new Map();
-    }
-
-    public getBotPermissions(): Map<number, string> {
-        return new Map();
-    }
 }
 export = Help;

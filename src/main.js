@@ -130,10 +130,8 @@ client.on("message", async (message) => {
 
         for (const command of commands) {
             if (command.getName() === parameters[0]) {
-                if (checkUsagePermissions(message.member, channel, command.getUserPermissions(), command.getBotPermissions())) {
-                    parameters.shift();
-                    await channel.send(await command.command(channelData, parameters, message));
-                }
+                parameters.shift();
+                await channel.send(await command.command(channelData, parameters, message));
                 return;
             }
         }
@@ -178,46 +176,6 @@ function subjectToSlowmode(member, channel, channelData) {
             return highestIncludedRole.comparePositionTo(highestExcludedRole) > 0;
         }
     }
-}
-
-/*
-    checks if perms are met in a given channel. if perms are not good it tells the discord user about the missing permissions
-    returns true if permissions are good, false otherwise
- */
-function checkUsagePermissions(guildMember, channel, userPermissions, botPermissions) {
-    let permissionsGood = true;
-    const bot = guildMember.guild.me;
-
-    let missingPermissions = getMissingPermissions(guildMember, channel, userPermissions);
-    if (missingPermissions !== "") {
-        permissionsGood = false;
-        channel.send(`${guildMember}, you don't have permission to use this command in this channel. You need: ${missingPermissions}.`);
-    }
-
-    missingPermissions = getMissingPermissions(bot, channel, botPermissions);
-    if (missingPermissions !== "") {
-        permissionsGood = false;
-        channel.send(`${guildMember}, this bot does not have permission to use this command in this channel. The bot needs: ${missingPermissions}.`);
-    }
-
-    return permissionsGood;
-}
-
-/*
-    returns a string listing the given required permissions that the member lacks in the given channel.
-    returns an empty string if the member has the permissions
- */
-function getMissingPermissions(guildMember, channel, requiredPermissions) {
-    let missingPermissions = "";
-    requiredPermissions.forEach((value, key) => {
-        if (!guildMember.permissionsIn(channel).has(key)) {
-            if (missingPermissions !== "") {
-                missingPermissions += ", ";
-            }
-            missingPermissions += value;
-        }
-    });
-    return missingPermissions;
 }
 
 client.login(config["bot-token"]);

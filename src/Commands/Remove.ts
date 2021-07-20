@@ -47,6 +47,10 @@ class Remove extends Command {
                 return `${message.author}, invalid tags. Example: ${this.prefix}${this.getName()} <#${channelID}>`;
             }
         }
+        const missingPermissions = Command.getMissingPermissions(<Discord.GuildMember>message.member, channelID, new Map([[Discord.Permissions.FLAGS.MANAGE_CHANNELS, "Manage Channel"]]), new Map());
+        if (missingPermissions) {
+            return missingPermissions;
+        }
 
         if (channelData === null) {
             return `There is no slowmode on <#${channelID}> to remove.`;
@@ -56,7 +60,7 @@ class Remove extends Command {
         }
 
         await this.database.removeChannel(channelID);
-        return `The slowmode has been removed from <#${channelID}> .`;
+        return `The slowmode has been removed from <#${channelID}>.`;
     }
 
     public getHelp(): string {
@@ -67,14 +71,6 @@ class Remove extends Command {
 
     public getName(): string {
         return "remove";
-    }
-
-    public getUserPermissions(): Map<number, string> {
-        return new Map([[Discord.Permissions.FLAGS.MANAGE_CHANNELS, "Manage Channel"]]);
-    }
-
-    public getBotPermissions(): Map<number, string> {
-        return new Map();
     }
 }
 export = Remove;

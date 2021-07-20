@@ -33,10 +33,6 @@ abstract class Command {
 
     public abstract getName() : string;
 
-    public abstract getUserPermissions(): Map<number, string>;
-
-    public abstract getBotPermissions(): Map<number, string>;
-
     protected static getPrettyTime(totalSeconds : bigint) : string {
         const years = totalSeconds / BigInt(31536000);
         const days = totalSeconds % BigInt(31536000) / BigInt(86400);
@@ -51,6 +47,48 @@ abstract class Command {
         string = (years > 0 ? `${years} year` + (years > 1 ? "s" : "") + (string.length > 0 ? ", " : " ") : "") + string;
 
         return string;
+    }
+
+    /*
+        checks if perms are met in a given channel
+        returns a list of user and bot permissions that are required, but the user or bot lacks, if applicable
+     */
+    protected static getMissingPermissions(author: Discord.GuildMember, channel: Discord.GuildChannelResolvable, userPermissions: Map<number, string>, botPermissions: Map<number, string>): string {
+        let output = "";
+        const bot = <Discord.GuildMember>author.guild.me;
+
+        let missingPermissions = this.getMissingMemberPermissions(author, channel, userPermissions);
+        if (missingPermissions !== "") {
+            output += `${author}, you don't have permission to use this command in <#${channel.valueOf()}>. You need: ${missingPermissions}.`;
+        }
+
+        missingPermissions = this.getMissingMemberPermissions(bot, channel, botPermissions);
+        if (missingPermissions !== "") {
+            if (output) {
+                output += "\n";
+            }
+            output += `${author}, this bot does not have permission to use this command un <#${channel.valueOf()}>. The bot needs: ${missingPermissions}.`;
+        }
+
+        return output;
+    }
+
+    /*
+        helper function for getMissingPermissions
+        returns a string listing the given required permissions that the member lacks in the given channel
+        returns an empty string if the member has the permissions
+     */
+    private static getMissingMemberPermissions(member: Discord.GuildMember, channel: Discord.GuildChannelResolvable, requiredPermissions: Map<number, string>) {
+        let missingPermissions = "";
+        requiredPermissions.forEach((value, key) => {
+            if (!member.permissionsIn(channel).has(key)) {
+                if (missingPermissions !== "") {
+                    missingPermissions += ", ";
+                }
+                missingPermissions += value;
+            }
+        });
+        return missingPermissions;
     }
 }
 export = Command;
