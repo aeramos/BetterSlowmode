@@ -57,7 +57,7 @@ class Status extends Command {
             length = length.slice(0, -2) + " ";
         }
 
-        output = "There is a " + length + (channelData.getType() === null ? "" : channelData.getType() ? "text " : "image ") + "slowmode in <#" + channelID + ">.";
+        output = "There is a " + length + (channelData.getType() === null ? "" : channelData.getType() ? "text " : "image ") + `slowmode in <#${channelID}>.`;
         let includes = channelData.getRoleIncludes().length === 0 ? "" : " It specially includes: " + (await Status.getDiscordRoleTags(<Discord.Guild>message.guild, channelData.getRoleIncludes())).join(", ");
         includes +=    channelData.getUserIncludes().length === 0 ? "" : (includes === "" ? " It specially includes: " : ", ") + (await Status.getDiscordUserTags(<Discord.Guild>message.guild, channelData.getUserIncludes())).join(", ");
         includes += includes === "" ? "" : ".";

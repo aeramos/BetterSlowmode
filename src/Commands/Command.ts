@@ -23,7 +23,7 @@ import Discord = require("discord.js");
 abstract class Command {
     protected readonly prefix: string;
 
-    public constructor(prefix: string) {
+    protected constructor(prefix: string) {
         this.prefix = prefix;
     }
 
@@ -67,7 +67,7 @@ abstract class Command {
             if (output) {
                 output += "\n";
             }
-            output += `${author}, this bot does not have permission to use this command un <#${channel.valueOf()}>. The bot needs: ${missingPermissions}.`;
+            output += `${author}, this bot does not have permission to use this command in <#${channel.valueOf()}>. The bot needs: ${missingPermissions}.`;
         }
 
         return output;
