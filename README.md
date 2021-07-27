@@ -7,13 +7,15 @@
 
 > A Discord bot that adds more depth and customization to text channel slowmodes.
 
+#### [Join the Support Server!](https://discord.com/invite/JUE8keP)
+
 ## Overview
 BetterSlowmode is a Discord bot designed to give users more power when defining slowmodes for text
 channels. With the bot, users can specify which types of content will be blocked during the slowmode:
-text or images or both. They can even specifically include or exclude certain members to/from the slowmode!
+text or images or both.
 
 BetterSlowmode is designed for as much customization as possible. Your slowmodes can be as short as
-1 second, or as long as a year!
+1 second, or as long as a year. You can even specially include or exclude certain members or roles to/from the slowmode!
 
 ## Invite the bot to your server!
 Coming soon! Once the codebase becomes stable and after I add more tools for automatically cleaning
