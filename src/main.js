@@ -59,7 +59,7 @@ async function initializeBot() {
     });
 
     commands = [
-        new Info(prefix),
+        new Info(prefix, client.user.id),
         new Remove(prefix, database, subjectToSlowmode),
         new Set(prefix, database),
         new SetImage(prefix, database),

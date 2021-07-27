@@ -22,9 +22,22 @@ import Command = require("./Command");
 import ChannelData = require("../ChannelData");
 
 class Info extends Command {
-    public async command(channelData: ChannelData, parameters: string[], message: Discord.Message): Promise<string> {
-        return "BetterSlowmode is a Discord bot that adds more depth and customization to text channel slowmodes." +
-            "\nView the source code here: https://github.com/aeramos/BetterSlowmode";
+    private readonly botID;
+
+    public constructor(prefix: string, botID: string) {
+        super(prefix);
+        this.botID = botID;
+    }
+
+    public async command(channelData: ChannelData, parameters: string[], message: Discord.Message): Promise<Discord.MessageEmbed> {
+        return new Discord.MessageEmbed({
+            title: "About BetterSlowmode",
+            url: "https://github.com/aeramos/BetterSlowmode",
+            description: "A Discord bot that adds more depth and customization to text channel slowmodes." +
+                "\n[Source Code](https://github.com/aeramos/BetterSlowmode)" +
+                "\n[Support Server](https://discord.com/invite/JUE8keP)" +
+                `\n[Bot Invite](https://discord.com/api/oauth2/authorize?client_id=${this.botID}&permissions=10240&scope=bot)`
+        });
     }
 
     public getHelp(): string {

@@ -27,7 +27,7 @@ abstract class Command {
         this.prefix = prefix;
     }
 
-    public abstract command(channelData: ChannelData, parameters: string[], message: Discord.Message): Promise<string>;
+    public abstract command(channelData: ChannelData, parameters: string[], message: Discord.Message): Promise<string | Discord.MessageEmbed>;
 
     public abstract getHelp() : string;
 
