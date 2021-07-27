@@ -22,7 +22,7 @@ class SetImage extends Set {
     protected static readonly SLOWMODE_TYPE: boolean | null = false;
 
     public getHelp(): string {
-        return "```" + this.prefix + "set-image <length> [--exclude <users/roles>] [--include <users/roles>]```" +
+        return "```" + this.prefix + "set-image <length> [-exclude <users/roles>] [-include <users/roles>]```" +
             "Sets a slowmode just for images using the given length (in the format: `1y 1d 1h 1m 1s`), and optionally excludes or includes users or roles in this server." +
             "\nLength must be at least 1 second and no more than 1 year.";
     }

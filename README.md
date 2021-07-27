@@ -35,8 +35,8 @@ npm start
 Try some commands with the bot, use `%help` for more information.
 ```
 %help
-%set 1h 30m 10s --exclude @aeramos
-%set-image 1d --include @aeramos
+%set 1h 30m 10s -exclude @aeramos
+%set-image 1d -include @aeramos
 %set-text 1y
 %remove
 %status

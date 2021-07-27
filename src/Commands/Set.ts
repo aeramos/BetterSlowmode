@@ -56,8 +56,9 @@ class Set extends Command {
 
         // parse each parameter
         for (let parameter of parameters) {
-            if (parameter.startsWith("--")) {
-                switch (parameter.slice(2)) {
+            // matches a hyphen, en dash, or em dash
+            if (parameter.startsWith("-") || parameter.startsWith("\u2013") || parameter.startsWith("\u2014")) {
+                switch (parameter.slice(1)) {
                     case "exclude":
                         isExcluding = true;
                         providedTags = false;
@@ -67,12 +68,12 @@ class Set extends Command {
                         providedTags = false;
                         break;
                     default:
-                        return `${message.author}, \`--\` must be followed by \`include\` or \`exclude\`.`;
+                        return `${message.author}, \`-\` must be followed by \`include\` or \`exclude\`.`;
                 }
             } else if (parameter.match(/^\d/)) { // if the parameter starts with a number it can only be the length
-                // example: set --include 1h
+                // example: set -include 1h
                 if (isExcluding !== null && !providedTags) {
-                    return `${message.author}, \`--include\` or \`--exclude\` must be followed by the tags of users or roles.`;
+                    return `${message.author}, \`-include\` or \`-exclude\` must be followed by the tags of users or roles.`;
                 }
                 isExcluding = null;
 
@@ -81,7 +82,7 @@ class Set extends Command {
                     // if properly formatted "15m", will remove the m and leave 15
                     addedTime = BigInt(parameter.slice(0, -1));
                 } catch (e) { // example: 15min. must be 15m
-                    return `${message.author}. length must be in format "15m 30s" for example. Use \`` + this.prefix + "help " + this.getName() + "` for more info.";
+                    return `${message.author}, length must be in format "15m 30s" for example. Use \`` + this.prefix + "help " + this.getName() + "` for more info.";
                 }
 
                 // switch statement breaks everything down to milliseconds and adds it to length
@@ -99,17 +100,17 @@ class Set extends Command {
                         addedTime *= BigInt(1000);
                         break;
                     default:
-                        return `${message.author}. length must be in format "15m 30s" for example. Use \`` + this.prefix + "help " + this.getName() + "` for more info.";
+                        return `${message.author}, length must be in format "15m 30s" for example. Use \`` + this.prefix + "help " + this.getName() + "` for more info.";
                 }
                 length += addedTime;
             } else { // this string must contain the parameter passed to an option: the tag of a user or role to exclude/include
                 // if we were given a tag but we are not excluding or including, something is wrong
                 if (isExcluding === null) {
-                    return `${message.author}, tags must be given after \`--include\` or \`--exclude\`.`;
+                    return `${message.author}, tags must be given after \`-include\` or \`-exclude\`.`;
                 }
                 // test to see if it contains channel or user tags, any number of them (at least 1), and nothing more
                 if (!new RegExp(/^(<(@|@!|@&)\d{1,20}>)+$/).test(parameter)) {
-                    return `${message.author}. invalid tags. Example: ${this.prefix}set 1h --exclude ${message.author}`;
+                    return `${message.author}, invalid tags. Example: ${this.prefix}set 1h -exclude ${message.author}`;
                 }
                 providedTags = true;
 
@@ -152,9 +153,9 @@ class Set extends Command {
                 }
             }
         }
-        // example: set --include
+        // example: set -include
         if (isExcluding !== null && !providedTags) {
-            return `${message.author}, \`--include\` or \`--exclude\` must be followed by the tags of users or roles.`;
+            return `${message.author}, \`-include\` or \`-exclude\` must be followed by the tags of users or roles.`;
         }
 
         // limit slowmode length to 1 year
@@ -168,7 +169,7 @@ class Set extends Command {
     }
 
     public getHelp(): string {
-        return "```" + this.prefix + "set <length> [--exclude <users/roles>] [--include <users/roles>]```" +
+        return "```" + this.prefix + "set <length> [-exclude <users/roles>] [-include <users/roles>]```" +
             "Sets a slowmode using the given length (in the format: `1y 1d 1h 1m 1s`), and optionally excludes or includes users or roles in this server." +
             "\nLength must be at least 1 second and no more than 1 year.";
     }
