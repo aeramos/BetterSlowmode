@@ -164,8 +164,9 @@ class Set extends Command {
         }
 
         // set the slowmode in the database and tell the Discord user it's done
-        await this.database.setChannel(new ChannelData(message.channel.id, (<Discord.Guild>message.guild).id, length, SLOWMODE_TYPE, userExclusions, userInclusions, roleExclusions, roleInclusions, [], []));
-        return Command.getPrettyTime(length / BigInt(1000)) + (SLOWMODE_TYPE === true ? "text" : SLOWMODE_TYPE === false ? "image" : "text and image") + " slowmode has been set!";
+        channelData = new ChannelData(message.channel.id, (<Discord.Guild>message.guild).id, length, SLOWMODE_TYPE, userExclusions, userInclusions, roleExclusions, roleInclusions, [], []);
+        await this.database.setChannel(channelData);
+        return Command.getPrettyTime(length / BigInt(1000)) + (SLOWMODE_TYPE === true ? "text" : SLOWMODE_TYPE === false ? "image" : "text and image") + " slowmode has been set!" + await Command.getSlowmodeSubjects(channelData, <Discord.Guild>message.guild);
     }
 
     public getHelp(): string {

@@ -73,6 +73,18 @@ abstract class Command {
         return output;
     }
 
+    protected static async getSlowmodeSubjects(channelData: ChannelData, guild: Discord.Guild): Promise<string> {
+        let includes = channelData.getRoleIncludes().length === 0 ? "" : " It specially includes: " + (await Command.getDiscordRoleTags(<Discord.Guild>guild, channelData.getRoleIncludes())).join(", ");
+        includes +=    channelData.getUserIncludes().length === 0 ? "" : (includes === "" ? " It specially includes: " : ", ") + (await Command.getDiscordUserTags(<Discord.Guild>guild, channelData.getUserIncludes())).join(", ");
+        includes += includes === "" ? "" : ".";
+
+        let excludes = channelData.getRoleExcludes().length === 0 ? "" : " It specially excludes: " + (await Command.getDiscordRoleTags(<Discord.Guild>guild, channelData.getRoleExcludes())).join(", ");
+        excludes +=    channelData.getUserExcludes().length === 0 ? "" : (excludes === "" ? " It specially excludes: " : ", ") + (await Command.getDiscordUserTags(<Discord.Guild>guild, channelData.getUserExcludes())).join(", ");
+        excludes += excludes === "" ? "" : ".";
+
+        return " It applies to users without the Administrator, Manage Channel, or Manage Messages permissions in the channel." + includes + excludes;
+    }
+
     /*
         helper function for getMissingPermissions
         returns a string listing the given required permissions that the member lacks in the given channel
@@ -89,6 +101,24 @@ abstract class Command {
             }
         });
         return missingPermissions;
+    }
+
+    private static async getDiscordUserTags(guild: Discord.Guild, userIDs: string[]): Promise<string[]> {
+        const array = [];
+        for (const member of await guild.members.fetch({user: userIDs, withPresences: false, force: true})) {
+            array.push("@" + member[1].user.tag);
+        }
+        return array;
+    }
+
+    private static async getDiscordRoleTags(guild: Discord.Guild, roleIDs: string[]): Promise<string[]> {
+        const array = [];
+        for (const role of await guild.roles.cache) {
+            if (roleIDs.includes(role[0])) {
+                array.push("@" + role[1].name);
+            }
+        }
+        return array;
     }
 }
 export = Command;

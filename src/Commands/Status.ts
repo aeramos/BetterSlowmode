@@ -49,7 +49,6 @@ class Status extends Command {
             return `There is no slowmode in <#${channelID}>.`;
         }
 
-        let output;
         let length = Command.getPrettyTime(channelData.getLength() / BigInt(1000));
 
         // convert "12 seconds slowmode" to "12 second slowmode"
@@ -57,17 +56,7 @@ class Status extends Command {
             length = length.slice(0, -2) + " ";
         }
 
-        output = "There is a " + length + (channelData.getType() === null ? "" : channelData.getType() ? "text " : "image ") + `slowmode in <#${channelID}>.`;
-        let includes = channelData.getRoleIncludes().length === 0 ? "" : " It specially includes: " + (await Status.getDiscordRoleTags(<Discord.Guild>message.guild, channelData.getRoleIncludes())).join(", ");
-        includes +=    channelData.getUserIncludes().length === 0 ? "" : (includes === "" ? " It specially includes: " : ", ") + (await Status.getDiscordUserTags(<Discord.Guild>message.guild, channelData.getUserIncludes())).join(", ");
-        includes += includes === "" ? "" : ".";
-
-        let excludes = channelData.getRoleExcludes().length === 0 ? "" : " It specially excludes: " + (await Status.getDiscordRoleTags(<Discord.Guild>message.guild, channelData.getRoleExcludes())).join(", ");
-        excludes +=    channelData.getUserExcludes().length === 0 ? "" : (excludes === "" ? " It specially excludes: " : ", ") + (await Status.getDiscordUserTags(<Discord.Guild>message.guild, channelData.getUserExcludes())).join(", ");
-        excludes += excludes === "" ? "" : ".";
-
-        output += includes + excludes;
-        return output;
+        return "There is a " + length + (channelData.getType() === null ? "" : channelData.getType() ? "text " : "image ") + `slowmode in <#${channelID}>.` + await Command.getSlowmodeSubjects(channelData, <Discord.Guild>message.guild);
     }
 
     public getHelp(): string {
@@ -77,24 +66,6 @@ class Status extends Command {
 
     public getName(): string {
         return "status";
-    }
-
-    private static async getDiscordUserTags(guild: Discord.Guild, userIDs: string[]): Promise<string[]> {
-        const array = [];
-        for (const member of await guild.members.fetch({user: userIDs, withPresences: false, force: true})) {
-            array.push("@" + member[1].user.tag);
-        }
-        return array;
-    }
-
-    private static async getDiscordRoleTags(guild: Discord.Guild, roleIDs: string[]): Promise<string[]> {
-        const array = [];
-        for (const role of await guild.roles.cache) {
-            if (roleIDs.includes(role[0])) {
-                array.push("@" + role[1].name);
-            }
-        }
-        return array;
     }
 }
 export = Status;
