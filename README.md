@@ -1,13 +1,12 @@
 # BetterSlowmode
-![Version](https://img.shields.io/badge/version-0.1.0-blue.svg?cacheSeconds=2592000)
-[![Documentation](https://img.shields.io/badge/documentation-yes-brightgreen.svg)](https://github.com/aeramos/BetterSlowmode#readme)
-[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/aeramos/BetterSlowmode/graphs/commit-activity)
-[![License: AGPL-3.0+](https://img.shields.io/github/license/aeramos/BetterSlowmode)](https://github.com/aeramos/BetterSlowmode/blob/master/LICENSE.txt)
-[![Twitter: aeramos\_](https://img.shields.io/twitter/follow/aeramos\_.svg?style=social)](https://twitter.com/aeramos\_)
+![Version: 0.1.0](https://img.shields.io/badge/version-0.1.0-blue.svg)
+[![License: GNU AGPL-3.0+](https://img.shields.io/github/license/aeramos/BetterSlowmode)](./LICENSE.txt)
+[![Twitter: aeramos_](https://img.shields.io/twitter/follow/aeramos_.svg)](https://twitter.com/aeramos_)
 
-> A Discord bot that adds more depth and customization to text channel slowmodes.
+#### A Discord bot that adds more depth and customization to text channel slowmodes, including text or image only slowmodes.
 
-#### [Join the Support Server!](https://discord.com/invite/JUE8keP)
+### [Invite the bot to your server!](https://discord.com/api/oauth2/authorize?client_id=733458562101280788&permissions=10240&scope=bot)
+### [Join the Support Server!](https://discord.com/invite/JUE8keP)
 
 ## Overview
 BetterSlowmode is a Discord bot designed to give users more power when defining slowmodes for text
@@ -17,53 +16,71 @@ text or images or both.
 BetterSlowmode is designed for as much customization as possible. Your slowmodes can be as short as
 1 second, or as long as a year. You can even specially include or exclude certain members or roles to/from the slowmode!
 
-## Invite the bot to your server!
-Coming soon! Once the codebase becomes stable and after I add more tools for automatically cleaning
-up the database, you'll be able to add BetterSlowmode to your server! Until then, you can self-host
-with instructions below!
+## How to use
+It's very simple! Try out the commands below to get started. Always remember that you can use `%help` for a list of all
+the commands, and `%help [command]` to get help for a specific command.
+```
+%help
+%help set
+%set 1h 30m 10s -exclude @aeramos
+%set-image 1d -include @aeramos
+%set-text 1y
+%status
+%remove
+%info
+```
 
-## Install
-1. Install and configure Postgres server
+## Show your support
+We are on [top.gg](https://top.gg/bot/733458562101280788). If you like this bot, feel free to leave a vote and a review!
+
+Also, it would mean a lot to us if you starred our repository on [GitHub](https://github.com/aeramos/BetterSlowmode)!
+
+## Frequently Asked Questions
+- I set a slowmode with the `%set` command, but nothing shows up on Discord. It doesn't say "Slowmode is enabled" near
+  the Discord chat. Is the slowmode enabled?
+    - Yes, the slowmode is enabled. It doesn't show the indicator because the bot doesn't use normal Discord Slowmodes,
+      it manages the messages by itself. This is what allows it to create slowmodes just for images or exclude certain
+      people from the slowmode for example.
+- The slowmode doesn't do anything. I set a slowmode, but it doesn't delete any of my messages. Is it broken?
+    - No, the bot's working fine. The reason you are immune from the slowmode is that you're a moderator with the
+      permissions to create a slowmode (Manage Channel or Administrator). See what happens when someone without those
+      permissions (who isn't also excluded) tries to violate the slowmode. The bot won't let them.
+- How do I include a moderator to a slowmode? It doesn't let me.
+    - You can only specially include people who are less powerful than you. This is determined by the order of the roles
+      in Discord. This is to prevent abuse of the special inclusions. You can change the order temporarily or just ask
+      the owner to set the slowmode. The owner of the server can include anyone.
+
+## Host the bot yourself
+Since BetterSlowmode is open source, you can host the bot yourself for your own servers if you want. 
+This is not necessary since we have a public instance of the bot that you can invite [here](https://discord.com/api/oauth2/authorize?client_id=733458562101280788&permissions=10240&scope=bot).
+If you have a question about our public hosting methods or security, please ask us on the [Support Server](https://discord.com/invite/JUE8keP).
+
+If you host the bot yourself, we just require that you follow the terms of our software license, the [GNU AGPL3+](./LICENSE.txt).
+We also ask that you don't host it as a public bot, unless you want to modify it and make your own fork, and advertise
+that fact. We just don't want anyone to be confused about the bot if there are multiple different instances out there.
+Please ask a question on the [Support Server](https://discord.com/invite/JUE8keP) if you're confused.
+
+### Installation
+1. Install and configure a PostgreSQL server for the database
 2. Setup `config/config.json` (use `config/config.json.example` as a base)
-3. `npm install`
+3. `npm install` to install the dependencies
 4. `npm run build` to compile the TypeScript
 
-## Usage
+### Usage
 Run the bot with:
 ```
 npm start
 ```
 
-Try some commands with the bot, use `%help` for more information.
-```
-%help
-%set 1h 30m 10s -exclude @aeramos
-%set-image 1d -include @aeramos
-%set-text 1y
-%remove
-%status
-```
-
 ## Developer
-**Alejandro Ramos**
+#### Alejandro Ramos
 
-* GitHub: [@aeramos](https://github.com/aeramos)
-* Twitter: [@aeramos\_](https://twitter.com/aeramos\_)
-* Email: [aeramos.work@gmail.com](mailto:aeramos.work@gmail.com)
+- GitHub: [@aeramos](https://github.com/aeramos)
+- Discord: [@aeramos#0979](https://discord.com/users/733391783324680234)
+- Twitter: [@aeramos_](https://twitter.com/aeramos_)
+- Email: [aeramos.work@gmail.com](mailto:aeramos.work@gmail.com)
 
-## 🤝 Contributing
-Contributions, issues, and feature requests are welcome!
-
-Feel free to check the [issues page](https://github.com/aeramos/BetterSlowmode/issues). 
-
-## Show your support
-Please ⭐️ this repository if this bot can help you!
-
-## 📝 License
+## License
 Copyright © 2020, 2021 [Alejandro Ramos](https://github.com/aeramos).
 
-This project is licensed under the [AGPL-3.0+](https://github.com/aeramos/BetterSlowmode/blob/master/LICENSE.txt).
-
-***
-_This README was generated with ❤️ by [readme-md-generator](https://github.com/kefranabg/readme-md-generator)
-and further modified by Alejandro Ramos._
+This project is licensed under the [GNU AGPL 3+](./LICENSE.txt).
