@@ -22,11 +22,13 @@ import Command = require("./Command");
 import ChannelData = require("../ChannelData");
 
 class Info extends Command {
-    private readonly botID;
+    private readonly botID: string;
+    private readonly supportCode: string;
 
-    public constructor(prefix: string, botID: string) {
+    public constructor(prefix: string, botID: string, supportCode: string) {
         super(prefix);
         this.botID = botID;
+        this.supportCode = supportCode;
     }
 
     public async command(channelData: ChannelData, parameters: string[], message: Discord.Message): Promise<Discord.MessageEmbed> {
@@ -35,7 +37,7 @@ class Info extends Command {
             url: "https://github.com/aeramos/BetterSlowmode",
             description: "A Discord bot that adds more depth and customization to text channel slowmodes." +
                 "\n[Source Code](https://github.com/aeramos/BetterSlowmode)" +
-                "\n[Support Server](https://discord.com/invite/JUE8keP)" +
+                `\n[Support Server](https://discord.com/invite/${this.supportCode})` +
                 `\n[Bot Invite](https://discord.com/api/oauth2/authorize?client_id=${this.botID}&permissions=10240&scope=bot)`
         });
     }

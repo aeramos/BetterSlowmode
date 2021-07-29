@@ -1,5 +1,6 @@
 {
     "bot-token": "Discord bot token. needed for connecting the bot to Discord",
     "database-url": "link to Postgres database",
-    "default-prefix": "%"
+    "default-prefix": "%",
+    "support-code": "the invite code to a Discord support server for the bot"
 }
