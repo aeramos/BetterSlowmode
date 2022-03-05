@@ -80,7 +80,29 @@ npm start
 - Twitter: [@aeramos_](https://twitter.com/aeramos_)
 - Email: [aeramos.work@gmail.com](mailto:aeramos.work@gmail.com)
 
-## License
-Copyright © 2020, 2021 [Alejandro Ramos](https://github.com/aeramos).
+## License / Terms of Service
+Copyright © 2020, 2021, 2022 [Alejandro Ramos](https://github.com/aeramos).
 
-This project is licensed under the [GNU AGPL 3+](./LICENSE.txt).
+BetterSlowmode is free software: you can redistribute it and/or modify it under the terms of the
+[GNU Affero General Public License](./LICENSE.txt) as published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+BetterSlowmode is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+details.
+
+You should have received a copy of the [GNU Affero General Public License](./LICENSE.txt) along with BetterSlowmode. 
+If not, see <https://www.gnu.org/licenses/>.
+
+## Privacy Policy
+BetterSlowmode only stores information directly related to the slowmodes while they are active. **We do not sell or
+distribute your data**. We also limit what information is required. We require some information so the bot knows what
+channel the slowmodes are on, and which people the slowmodes apply to.
+
+In detail, this means: the `channel ID` (if the channel has one of our slowmodes), the `server ID` for those channels,
+the `user ID` of people who are subject to the slowmode after they send a message in the channel, and what time they
+last sent a message (if the slowmode didn't delete it). Optionally, we also record `user IDs` or `role IDs` if a user or
+role is specially included to or excluded from the slowmode.
+
+All information relating to a channel is removed when its slowmode is removed. We also remove stored `userIDs` and
+message times after the user's cooldown expires.
