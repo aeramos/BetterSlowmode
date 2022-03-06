@@ -31,15 +31,19 @@ class Info extends Command {
         this.supportCode = supportCode;
     }
 
-    public async command(channelData: ChannelData, parameters: string[], message: Discord.Message): Promise<Discord.MessageEmbed> {
-        return new Discord.MessageEmbed({
-            title: "About BetterSlowmode",
-            url: "https://github.com/aeramos/BetterSlowmode",
-            description: "A Discord bot that adds more depth and customization to text channel slowmodes." +
-                "\n[Source Code](https://github.com/aeramos/BetterSlowmode)" +
-                `\n[Support Server](https://discord.com/invite/${this.supportCode})` +
-                `\n[Bot Invite](https://discord.com/api/oauth2/authorize?client_id=${this.botID}&permissions=10240&scope=bot)`
-        });
+    public async command(channelData: ChannelData, parameters: string[], message: Discord.Message): Promise<Discord.MessageOptions> {
+        return {
+            embeds: [
+                new Discord.MessageEmbed({
+                    title: "About BetterSlowmode",
+                    url: "https://github.com/aeramos/BetterSlowmode",
+                    description: "A Discord bot that adds more depth and customization to text channel slowmodes." +
+                        "\n[Source Code](https://github.com/aeramos/BetterSlowmode)" +
+                        `\n[Support Server](https://discord.com/invite/${this.supportCode})` +
+                        `\n[Bot Invite](https://discord.com/api/oauth2/authorize?client_id=${this.botID}&permissions=10240&scope=bot%20applications.commands )`
+                })
+            ]
+        }
     }
 
     public getHelp(): string {

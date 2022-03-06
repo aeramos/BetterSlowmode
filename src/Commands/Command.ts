@@ -27,7 +27,7 @@ abstract class Command {
         this.prefix = prefix;
     }
 
-    public abstract command(channelData: ChannelData, parameters: string[], message: Discord.Message): Promise<string | Discord.MessageEmbed>;
+    public abstract command(channelData: ChannelData, parameters: string[], message: Discord.Message): Promise<string | Discord.MessageOptions>;
 
     public abstract getHelp() : string;
 
@@ -53,7 +53,7 @@ abstract class Command {
         checks if perms are met in a given channel
         returns a list of user and bot permissions that are required, but the user or bot lacks, if applicable
      */
-    protected static getMissingPermissions(author: Discord.GuildMember, channel: Discord.GuildChannelResolvable, userPermissions: Map<number, string>, botPermissions: Map<number, string>): string {
+    protected static getMissingPermissions(author: Discord.GuildMember, channel: Discord.GuildChannelResolvable, userPermissions: Map<bigint, string>, botPermissions: Map<bigint, string>): string {
         let output = "";
         const bot = <Discord.GuildMember>author.guild.me;
 
@@ -90,7 +90,7 @@ abstract class Command {
         returns a string listing the given required permissions that the member lacks in the given channel
         returns an empty string if the member has the permissions
      */
-    private static getMissingMemberPermissions(member: Discord.GuildMember, channel: Discord.GuildChannelResolvable, requiredPermissions: Map<number, string>) {
+    private static getMissingMemberPermissions(member: Discord.GuildMember, channel: Discord.GuildChannelResolvable, requiredPermissions: Map<bigint, string>) {
         let missingPermissions = "";
         requiredPermissions.forEach((value, key) => {
             if (!member.permissionsIn(channel).has(key)) {

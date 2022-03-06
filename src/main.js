@@ -17,7 +17,7 @@
  */
 
 const Discord = require("discord.js");
-const client = new Discord.Client();
+const client = new Discord.Client({intents: [Discord.Intents.FLAGS.GUILDS, Discord.Intents.FLAGS.GUILD_MESSAGES]});
 const config = require("../config/config.json");
 
 const Database = require("./Database");
@@ -50,8 +50,8 @@ client.on("ready", async () => {
 
 // set up the database and remove channels that are no longer valid
 async function initializeBot() {
-    const serverIDs = client.guilds.cache.keyArray();
-    const channelIDs = client.channels.cache.filter(channel => channel.type === "text").keyArray();
+    const serverIDs = client.guilds.cache.keys();
+    const channelIDs = client.channels.cache.filter(channel => channel.type === "GUILD_TEXT").keys();
 
     await Database.build(config["database-url"]).then(async (db) => {
         database = db;
@@ -85,13 +85,13 @@ client.on("guildDelete", async (guild) => {
 });
 
 client.on("channelDelete", async (channel) => {
-    if (channel.type !== "text") {
+    if (channel.type !== "GUILD_TEXT") {
         return; // we only manage guild text channels
     }
     await database.removeChannel(channel.id);
 });
 
-client.on("message", async (message) => {
+client.on("messageCreate", async (message) => {
     // don't respond to bots
     if (message.author.bot) {
         return;
@@ -117,7 +117,7 @@ client.on("message", async (message) => {
                     channelData.addUser(authorID, messageTimestamp);
                     await database.setChannel(channelData);
                 } else {
-                    await message.delete({reason: "Violated slowmode."});
+                    await message.delete();
                     return;
                 }
             }
@@ -142,7 +142,7 @@ client.on("message", async (message) => {
  *  Returns a boolean indicating if the given member is subject to a slowmode in the given channel or not.
  */
 function subjectToSlowmode(member, channel, channelData) {
-    if (member.guild.ownerID === member.id) return false;
+    if (member.guild.ownerId === member.id) return false;
     if (channelData.includesUser(member.id)) return true;
     if (channelData.excludesUser(member.id)) return false;
 

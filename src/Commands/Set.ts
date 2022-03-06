@@ -205,7 +205,7 @@ class Set extends Command {
                         return `${author}, you can only include users whose highest role is ordered lower than your highest role. You can never include the owner or yourself.`;
                     }
                 } else {
-                    const role: Discord.Role | null = await guild.roles.fetch(mentionID, true, true);
+                    const role: Discord.Role | null = await guild.roles.fetch(mentionID, {cache: true, force: true});
                     if (role === null) {
                         return `${author}, could not find the role you mentioned. Are you sure it's in this server?`;
                     }
@@ -232,10 +232,10 @@ class Set extends Command {
         }
 
         // if one of the members is the owner
-        if (member1.id === guild.ownerID) {
+        if (member1.id === guild.ownerId) {
             return true;
         }
-        if (member2.id === guild.ownerID) {
+        if (member2.id === guild.ownerId) {
             return false;
         }
 
@@ -243,7 +243,7 @@ class Set extends Command {
     }
 
     private static isMorePowerfulThanRole(guild: Discord.Guild, member: Discord.GuildMember, role: Discord.Role): boolean {
-        if (member.id === guild.ownerID) {
+        if (member.id === guild.ownerId) {
             return true;
         }
         return member.roles.highest.comparePositionTo(role) > 0;

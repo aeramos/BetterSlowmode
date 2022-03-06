@@ -5,7 +5,7 @@
 
 #### A Discord bot that adds more depth and customization to text channel slowmodes, including text or image only slowmodes.
 
-### [Invite the bot to your server!](https://discord.com/api/oauth2/authorize?client_id=733458562101280788&permissions=10240&scope=bot)
+### [Invite the bot to your server!](https://discord.com/api/oauth2/authorize?client_id=733458562101280788&permissions=10240&scope=bot%20applications.commands )
 ### [Join the Support Server!](https://discord.com/invite/JUE8keP)
 
 ## Overview
