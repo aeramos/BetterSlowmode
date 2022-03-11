@@ -22,6 +22,7 @@ const config = require("../config/config.json");
 
 const Database = require("./Database");
 let database;
+let ready = false;
 
 const prefix = config["default-prefix"];
 
@@ -45,7 +46,9 @@ client.on("ready", async () => {
         console.log("Database clean. Bot ready!");
     }).then(() => {
         client.user.setActivity(prefix + "help for help!")
-    })
+    }).then(() => {
+        ready = true;
+    });
 });
 
 // set up the database and remove channels that are no longer valid
@@ -81,10 +84,18 @@ function shutDownBot(signal) {
 }
 
 client.on("guildDelete", async (guild) => {
+    if (!ready) {
+        return;
+    }
+
     await database.removeServer(guild.id);
 });
 
 client.on("channelDelete", async (channel) => {
+    if (!ready) {
+        return;
+    }
+
     if (channel.type !== "GUILD_TEXT") {
         return; // we only manage guild text channels
     }
@@ -92,6 +103,10 @@ client.on("channelDelete", async (channel) => {
 });
 
 client.on("messageCreate", async (message) => {
+    if (!ready) {
+        return;
+    }
+
     // don't respond to bots
     if (message.author.bot) {
         return;
