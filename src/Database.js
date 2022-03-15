@@ -52,7 +52,7 @@ class Database {
                 allowNull: false
             },
             length: {
-                type: DataTypes.BIGINT,
+                type: DataTypes.INTEGER,
                 allowNull: false
             },
             type: {
@@ -188,7 +188,7 @@ class Database {
             const userTimes = model.userTimes.slice();
             let changed = false;
             for (let i = 0; i < users.length; i++) {
-                if (Date.now() >= BigInt(userTimes[i]) + BigInt(model.length)) {
+                if (Date.now() >= userTimes[i] + model.length) {
                     users.splice(i, 1);
                     userTimes.splice(i, 1);
                     model.set("users", users);

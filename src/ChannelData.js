@@ -50,7 +50,7 @@ class ChannelData {
     }
 
     getLength() {
-        return BigInt(this.#length);
+        return Number(this.#length);
     }
 
     getType() {
@@ -100,9 +100,9 @@ class ChannelData {
     getUserTime(id) {
         const index = this.#users.indexOf(id);
         if (index !== -1) {
-            return BigInt(this.#userTimes[index]);
+            return Number(this.#userTimes[index]);
         } else {
-            return -1n;
+            return -1;
         }
     }
 

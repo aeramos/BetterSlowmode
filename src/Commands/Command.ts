@@ -33,12 +33,12 @@ abstract class Command {
 
     public abstract getName() : string;
 
-    protected static getPrettyTime(totalSeconds : bigint) : string {
-        const years = totalSeconds / BigInt(31536000);
-        const days = totalSeconds % BigInt(31536000) / BigInt(86400);
-        const hours = totalSeconds % BigInt(86400) / BigInt(3600);
-        const minutes = totalSeconds % BigInt(3600) / BigInt(60);
-        const seconds = totalSeconds % BigInt(60);
+    protected static getPrettyTime(totalSeconds : number) : string {
+        const years = Math.floor(totalSeconds / 31536000);
+        const days = Math.floor(totalSeconds % 31536000 / 86400);
+        const hours = Math.floor(totalSeconds % 86400 / 3600);
+        const minutes = Math.floor(totalSeconds % 3600 / 60);
+        const seconds = Math.floor(totalSeconds % 60);
 
         let string = seconds > 0 ? `${seconds} second` + (seconds > 1 ? "s " : " ") : "";
         string = (minutes > 0 ? `${minutes} minute` + (minutes > 1 ? "s" : "") + (string.length > 0 ? ", " : " ") : "") + string;

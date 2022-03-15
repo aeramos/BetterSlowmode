@@ -128,7 +128,7 @@ client.on("messageCreate", async (message) => {
                 const messageTimestamp = message.createdTimestamp;
                 const userTimestamp = channelData.getUserTime(authorID);
 
-                if (userTimestamp === undefined || messageTimestamp >= userTimestamp + BigInt(channelData.getLength())) {
+                if (userTimestamp === undefined || messageTimestamp >= userTimestamp + (channelData.getLength() * 1000)) {
                     channelData.addUser(authorID, messageTimestamp);
                     await database.setChannel(channelData);
                 } else {

@@ -49,7 +49,7 @@ class Status extends Command {
             return `There is no slowmode in <#${channelID}>.`;
         }
 
-        let length = Command.getPrettyTime(channelData.getLength() / BigInt(1000));
+        let length = Command.getPrettyTime(channelData.getLength());
 
         // convert "12 seconds slowmode" to "12 second slowmode"
         if (length.endsWith("s ")) {

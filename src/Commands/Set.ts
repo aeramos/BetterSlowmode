@@ -45,7 +45,7 @@ class Set extends Command {
         }
 
         // instantiate slowmode settings
-        let length: bigint = BigInt(0);
+        let length: number = 0;
         const userExclusions: string[] = [];
         const userInclusions: string[] = [];
         const roleExclusions: string[] = [];
@@ -77,10 +77,10 @@ class Set extends Command {
                 }
                 isExcluding = null;
 
-                let addedTime;
+                let addedTime: number;
                 try {
                     // if properly formatted "15m", will remove the m and leave 15
-                    addedTime = BigInt(parameter.slice(0, -1));
+                    addedTime = Number(parameter.slice(0, -1));
                 } catch (e) { // example: 15min. must be 15m
                     return `${message.author}, length must be in format "15m 30s" for example. Use \`` + this.prefix + "help " + this.getName() + "` for more info.";
                 }
@@ -89,15 +89,14 @@ class Set extends Command {
                 // noinspection FallThroughInSwitchStatementJS
                 switch (parameter.slice(-1)) {
                     case "y":
-                        addedTime *= BigInt(365);
+                        addedTime *= 365;
                     case "d":
-                        addedTime *= BigInt(24);
+                        addedTime *= 24;
                     case "h":
-                        addedTime *= BigInt(60);
+                        addedTime *= 60;
                     case "m":
-                        addedTime *= BigInt(60);
+                        addedTime *= 60;
                     case "s":
-                        addedTime *= BigInt(1000);
                         break;
                     default:
                         return `${message.author}, length must be in format "15m 30s" for example. Use \`` + this.prefix + "help " + this.getName() + "` for more info.";
@@ -159,14 +158,14 @@ class Set extends Command {
         }
 
         // limit slowmode length to 1 year
-        if (length === BigInt(0) || length > BigInt(31536000000)) {
+        if (length === 0 || length > 31536000) {
             return `${message.author}, length must be at least 1 second and no longer than 1 year.`;
         }
 
         // set the slowmode in the database and tell the Discord user it's done
         channelData = new ChannelData(message.channel.id, (<Discord.Guild>message.guild).id, length, SLOWMODE_TYPE, userExclusions, userInclusions, roleExclusions, roleInclusions, [], []);
         await this.database.setChannel(channelData);
-        return Command.getPrettyTime(length / BigInt(1000)) + (SLOWMODE_TYPE === true ? "text" : SLOWMODE_TYPE === false ? "image" : "text and image") + " slowmode has been set!" + await Command.getSlowmodeSubjects(channelData, <Discord.Guild>message.guild);
+        return Command.getPrettyTime(length) + (SLOWMODE_TYPE === true ? "text" : SLOWMODE_TYPE === false ? "image" : "text and image") + " slowmode has been set!" + await Command.getSlowmodeSubjects(channelData, <Discord.Guild>message.guild);
     }
 
     public getHelp(): string {
