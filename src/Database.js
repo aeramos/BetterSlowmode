@@ -29,6 +29,11 @@ class Database {
                 ssl: {
                     rejectUnauthorized: false
                 }
+            },
+            logging: (msg) => {
+                if (!msg.startsWith("Executing (default): SELECT \"id\", \"serverID\"")) {
+                    console.log(msg);
+                }
             }
         });
     }
