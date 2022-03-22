@@ -18,6 +18,8 @@
     "start": "node src/main.js"
   },
   "dependencies": {
+    "@discordjs/rest": "^0.3.0",
+    "discord-api-types": "^0.27.3",
     "discord.js": "^13.6.0",
     "pg": "^8.7.3",
     "pg-hstore": "^2.3.4",

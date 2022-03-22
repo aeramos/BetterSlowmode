@@ -1,6 +1,6 @@
 /*
  * This file is part of BetterSlowmode.
- * Copyright (C) 2020, 2021 Alejandro Ramos
+ * Copyright (C) 2020, 2021, 2022 Alejandro Ramos
  *
  * BetterSlowmode is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -18,22 +18,80 @@
 
 import Discord = require("discord.js");
 import Command = require("./Command");
+import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
+
 // @ts-ignore
 import ChannelData = require("../ChannelData");
 
 class Help extends Command {
     private readonly commands: Command[]
 
-    public constructor(prefix: string, commands: Command[]) {
-        super(prefix);
+    public constructor(id: Discord.Snowflake, commands: Command[]) {
+        super(id);
         this.commands = commands;
     }
 
-    public async command(channelData: ChannelData, parameters: string[], message: Discord.Message): Promise<string> {
+    public getName(): string {
+        return "help";
+    }
+
+    public getHelp(): string {
+        return `Usage: <@${this.id}> \`help [command]\`` +
+            "\nLists commands. If given a command, describes usage of command.";
+    }
+
+    public getSlashCommand(): object {
+        const commandChoices: object[] = []
+        for (const command of this.commands) {
+            commandChoices.push(
+                {
+                    name: command.getName(),
+                    value: command.getName()
+                });
+        }
+        return {
+            description: "Lists commands. If given a command, describes usage of command.",
+            options: [
+                {
+                    type: ApplicationCommandOptionTypes.STRING,
+                    name: "command",
+                    description: "The command to describe.",
+                    required: false,
+                    choices: commandChoices
+                }
+            ]
+        }
+    }
+
+    public async tagCommand(channelData: ChannelData, parameters: string[], message: Discord.Message): Promise<Discord.MessageOptions> {
+        if (parameters.length === 0) {
+            return {
+                content: this.command(null)
+            };
+        } else {
+            if (parameters.length === 1) {
+                return {
+                    content: this.command(parameters[0])
+                };
+            } else {
+                return {
+                    content: this.getHelp()
+                };
+            }
+        }
+    }
+
+    public async slashCommand(interaction: Discord.CommandInteraction): Promise<void> {
+        return interaction.reply({
+            content: this.command(interaction.options.getString("command", false))
+        });
+    }
+
+    public command(parameter: string | null): string {
         // if a command is given, print help for that command
-        if (parameters.length !== 0) {
+        if (parameter !== null) {
             for (const command of this.commands) {
-                if (parameters[0] === command.getName()) {
+                if (parameter === command.getName()) {
                     return command.getHelp();
                 }
             }
@@ -44,18 +102,11 @@ class Help extends Command {
         for (let i = 1; i < this.commands.length; i++){
             output += ", `" + this.commands[i].getName() + "`"
         }
-        output += ".\n\nYou can enter `" + this.prefix + "help [command]` to get help for a specific command.";
-        output += "\nExample: `" + this.prefix + "help " + this.commands[Math.floor(Math.random() * this.commands.length)].getName() + "`.";
+        output += `\n\nFor help with a specific command, enter: <@${this.id}> \`help [command]\``;
+
+        // give an example using a random command
+        output += `\nExample: <@${this.id}> \`help ${this.commands[Math.floor(Math.random() * this.commands.length)].getName()}\``;
         return output;
-    }
-
-    public getHelp(): string {
-        return "```" + this.prefix + "help [command]```" +
-            "Lists commands. If given a command, describes usage of command.";
-    }
-
-    public getName(): string {
-        return "help";
     }
 }
 export = Help;

@@ -1,6 +1,6 @@
 /*
  * This file is part of BetterSlowmode.
- * Copyright (C) 2020, 2021 Alejandro Ramos
+ * Copyright (C) 2020, 2021, 2022 Alejandro Ramos
  *
  * BetterSlowmode is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -18,6 +18,10 @@
 
 const Discord = require("discord.js");
 const client = new Discord.Client({intents: [Discord.Intents.FLAGS.GUILDS, Discord.Intents.FLAGS.GUILD_MESSAGES]});
+
+const { REST } = require("@discordjs/rest");
+const { Routes } = require("discord-api-types/rest/v9");
+
 const config = require("../config/config.json");
 
 const Database = require("./Database");
@@ -42,13 +46,44 @@ process.on("SIGTERM", shutDownBot);
 client.on("ready", async () => {
     console.log(`Logged in as ${client.user.tag}`);
 
-    await initializeBot().then(() => {
-        console.log("Database clean. Bot ready!");
-    }).then(() => {
-        client.user.setActivity(prefix + "help for help!")
-    }).then(() => {
-        ready = true;
-    });
+    await initializeBot();
+    console.log("Database cleaned.");
+
+    // set up slash commands
+    const slashCommands = [];
+    for (const command of commands) {
+            const slashCommand = command.getSlashCommand();
+        slashCommand.name = command.getName();
+        slashCommands.push(slashCommand);
+    }
+    const rest = new REST({ version: '9' }).setToken(config["bot-token"]);
+    try {
+        console.log("Reloading slash commands.");
+        await rest.put(Routes.applicationCommands(client.user.id), { body : slashCommands });
+        console.log("Successfully reloaded slash commands.");
+    } catch (error) {
+        console.log(error);
+        shutDownBot("Slash command registration error.");
+    }
+
+    client.user.setActivity(prefix + "help for help!")
+    ready = true;
+    console.log("Bot is ready!");
+});
+
+client.on("interactionCreate", async (interaction) => {
+    if (!interaction.guild) {
+        if (interaction.commandName !== "help" && interaction.commandName !== "info") {
+            return interaction.reply({
+                content: "This command can only be used in a server."
+            });
+        }
+    }
+    for (const command of commands) {
+        if (command.getName() === interaction.commandName) {
+            return command.slashCommand(interaction);
+        }
+    }
 });
 
 // set up the database and remove channels that are no longer valid
@@ -62,14 +97,14 @@ async function initializeBot() {
     });
 
     commands = [
-        new Info(prefix, client.user.id, config["support-code"]),
-        new Remove(prefix, database, subjectToSlowmode),
-        new Set(prefix, database),
-        new SetImage(prefix, database),
-        new SetText(prefix, database),
-        new Status(prefix, database)
+        new Info(client.user.id, config["support-code"]),
+        new Remove(client.user.id, database, subjectToSlowmode),
+        new Set(client.user.id, database),
+        new SetImage(client.user.id, database),
+        new SetText(client.user.id, database),
+        new Status(client.user.id, database)
     ];
-    helpCommand = new Help(prefix, commands);
+    helpCommand = new Help(client.user.id, commands);
     commands.splice(0, 0, helpCommand);
 }
 
@@ -139,16 +174,23 @@ client.on("messageCreate", async (message) => {
         }
     }
 
+    // check if the message is directed at the bot using the prefix or the tag
+    let parameters = message.content;
     if (message.content.startsWith(prefix)) {
-        let parameters = message.content.substring(prefix.length);
-        parameters = parameters.split(" ").filter(e => e !== "");
-
-        for (const command of commands) {
-            if (command.getName() === parameters[0]) {
-                parameters.shift();
-                await channel.send(await command.command(channelData, parameters, message));
-                return;
-            }
+        parameters = parameters.substring(prefix.length)
+    } else if (message.content.startsWith(`<@!${client.user.id}>`)) {
+        parameters = parameters.substring(`<@!${client.user.id}>`.length);
+    } else if (message.content.startsWith(`<@${client.user.id}>`)) {
+        parameters = parameters.substring(`<@${client.user.id}>`.length);
+    } else {
+        return;
+    }
+    parameters = parameters.split(" ").filter(e => e !== "");
+    for (const command of commands) {
+        if (command.getName() === parameters[0]) {
+            parameters.shift();
+            await channel.send(await command.tagCommand(channelData, parameters, message));
+            return;
         }
     }
 });

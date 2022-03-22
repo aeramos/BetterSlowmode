@@ -1,6 +1,6 @@
 /*
  * This file is part of BetterSlowmode.
- * Copyright (C) 2020, 2021 Alejandro Ramos
+ * Copyright (C) 2020, 2021, 2022 Alejandro Ramos
  *
  * BetterSlowmode is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,19 +16,29 @@
  * along with BetterSlowmode.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
 import Set = require("./Set");
 
 class SetText extends Set {
     protected static readonly SLOWMODE_TYPE: boolean | null = true;
 
+    public getName(): string {
+        return "set-text";
+    }
+
     public getHelp(): string {
-        return "```" + this.prefix + "set-text <length> [-exclude <users/roles>] [-include <users/roles>]```" +
-            "Sets a slowmode just for text using the given length (in the format: `1y 1d 1h 1m 1s`), and optionally excludes or includes users or roles in this server." +
+        return `Usage: <@${this.id}> \`set-text <length> [-exclude <users/roles>] [-include <users/roles>]\`` +
+            "\nSets a slowmode just for text using the given length (in the format: `1y 1d 1h 1m 1s`), and optionally excludes or includes users or roles in this server." +
             "\nLength must be at least 1 second and no more than 1 year.";
     }
 
-    public getName(): string {
-        return "set-text";
+    public getSlashCommand(): object {
+        return {
+            type: ApplicationCommandOptionTypes.SUB_COMMAND,
+            name: "set-text",
+            description: "Sets a text-only slowmode of the given length and optionally includes/excludes users or roles.",
+            options: Set.SLASH_COMMAND_OPTIONS
+        }
     }
 }
 export = SetText;

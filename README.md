@@ -35,6 +35,19 @@ We are on [top.gg](https://top.gg/bot/733458562101280788). If you like this bot,
 
 Also, it would mean a lot to us if you starred our repository on [GitHub](https://github.com/aeramos/BetterSlowmode)!
 
+## Slash command and tag prefixes
+Due to [a change](https://support-dev.discord.com/hc/en-us/articles/4404772028055-Message-Content-Privileged-Intent-for-Verified-Bots)
+from Discord, bots in 100+ servers will no longer be able to view the contents of a message if they don't gain approval
+from Discord to view it, unless the bot is tagged (@) in the message. Just in case we don't get approval, BetterSlowmode
+now supports slash commands and using a tag (@BetterSlowmode) as the prefix.
+
+If slash commands are not enabled in your server, you may need to [re-invite BetterSlowmode](https://discord.com/api/oauth2/authorize?client_id=733458562101280788&permissions=10240&scope=bot%20applications.commands)
+to your server. Don't worry, your slowmodes will not be removed because you don't need to kick the bot, just click on
+the new invite link.
+
+Once enabled, slash commands can be used by pressing `/` then selecting or typing any BetterSlowmode command. Tag
+commands can be used by just using @BetterSlowmode in place of the prefix (`%`).
+
 ## Frequently Asked Questions
 - I set a slowmode with the `%set` command, but nothing shows up on Discord. It doesn't say "Slowmode is enabled" near
   the Discord chat. Is the slowmode enabled?

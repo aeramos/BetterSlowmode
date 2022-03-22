@@ -1,6 +1,6 @@
 /*
  * This file is part of BetterSlowmode.
- * Copyright (C) 2021 Alejandro Ramos
+ * Copyright (C) 2021, 2022 Alejandro Ramos
  *
  * BetterSlowmode is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,22 +16,27 @@
  * along with BetterSlowmode.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-// @ts-ignore
-import ChannelData = require("../ChannelData")
 import Discord = require("discord.js");
 
-abstract class Command {
-    protected readonly prefix: string;
+// @ts-ignore
+import ChannelData = require("../ChannelData")
 
-    protected constructor(prefix: string) {
-        this.prefix = prefix;
+abstract class Command {
+    protected readonly id: Discord.Snowflake;
+
+    protected constructor(id: Discord.Snowflake) {
+        this.id = id;
     }
 
-    public abstract command(channelData: ChannelData, parameters: string[], message: Discord.Message): Promise<string | Discord.MessageOptions>;
+    public abstract getName(): string;
 
-    public abstract getHelp() : string;
+    public abstract getHelp(): string;
 
-    public abstract getName() : string;
+    public abstract getSlashCommand(): object;
+
+    public abstract tagCommand(channelData: ChannelData, parameters: string[], message: Discord.Message): Promise<Discord.MessageOptions>;
+
+    public abstract slashCommand(interaction: Discord.CommandInteraction): Promise<void>;
 
     protected static getPrettyTime(totalSeconds : number) : string {
         const years = Math.floor(totalSeconds / 31536000);
@@ -90,7 +95,7 @@ abstract class Command {
         returns a string listing the given required permissions that the member lacks in the given channel
         returns an empty string if the member has the permissions
      */
-    private static getMissingMemberPermissions(member: Discord.GuildMember, channel: Discord.GuildChannelResolvable, requiredPermissions: Map<bigint, string>) {
+    private static getMissingMemberPermissions(member: Discord.GuildMember, channel: Discord.GuildChannelResolvable, requiredPermissions: Map<bigint, string>): String {
         let missingPermissions = "";
         requiredPermissions.forEach((value, key) => {
             if (!member.permissionsIn(channel).has(key)) {
