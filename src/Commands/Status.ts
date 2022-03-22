@@ -103,7 +103,32 @@ class Status extends Command {
             length = length.slice(0, -2) + " ";
         }
 
-        return "There is a " + length + (channelData.getType() === null ? "" : channelData.getType() ? "text " : "image ") + `slowmode in <#${channelID}>.` + await Command.getSlowmodeSubjects(channelData, guild);
+        // some members or roles may not be shown if they are not in the server anymore or if they couldn't be fetched before the request timed out
+        return "There is a " + length + (channelData.getType() === null ? "" : channelData.getType() ? "text " : "image ") + `slowmode in <#${channelID}>.`
+            + await Command.getSlowmodeSubjects(await Status.getMembers(guild, channelData.getUserIncludes()), await Status.getMembers(guild, channelData.getUserExcludes()),
+            await Status.getRoles(guild, channelData.getRoleIncludes()), await Status.getRoles(guild, channelData.getRoleExcludes()));
+    }
+
+    private static async getMembers(guild: Discord.Guild, memberIDs: Discord.Snowflake[]): Promise<Discord.GuildMember[]> {
+        return await guild.members.fetch({
+            user: memberIDs,
+            withPresences: false,
+            force: true,
+            time: 10000
+        }).then((members) => {
+            return Array.from(members.values());
+        }).catch(() => []);
+    }
+
+    private static async getRoles(guild: Discord.Guild, roleIDs: Discord.Snowflake[]): Promise<Discord.Role[]> {
+        let roles: Discord.Role[] = [];
+        for (const roleID of roleIDs) {
+            const role = await guild.roles.fetch(roleID, {cache: true, force: true});
+            if (role) {
+                roles.push(role);
+            }
+        }
+        return roles;
     }
 }
 export = Status;

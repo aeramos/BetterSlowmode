@@ -78,14 +78,14 @@ abstract class Command {
         return output;
     }
 
-    protected static async getSlowmodeSubjects(channelData: ChannelData, guild: Discord.Guild): Promise<string> {
-        let includes = channelData.getRoleIncludes().length === 0 ? "" : " It specially includes: " + (await Command.getDiscordRoleTags(<Discord.Guild>guild, channelData.getRoleIncludes())).join(", ");
-        includes +=    channelData.getUserIncludes().length === 0 ? "" : (includes === "" ? " It specially includes: " : ", ") + (await Command.getDiscordUserTags(<Discord.Guild>guild, channelData.getUserIncludes())).join(", ");
-        includes += includes === "" ? "" : ".";
+    protected static async getSlowmodeSubjects(userIncludes: Discord.GuildMember[], userExcludes: Discord.GuildMember[], roleIncludes: Discord.Role[], roleExcludes: Discord.Role[]): Promise<string> {
+        let includes = roleIncludes.length === 0 ? "" : " It specially includes: " + (await Command.getDiscordRoleTags(roleIncludes)).join(", ");
+        includes +=    userIncludes.length === 0 ? "" : (includes === "" ? " It specially includes: " : ", ") + (await Command.getDiscordUserTags(userIncludes)).join(", ");
+        includes +=    includes === "" ? "" : ".";
 
-        let excludes = channelData.getRoleExcludes().length === 0 ? "" : " It specially excludes: " + (await Command.getDiscordRoleTags(<Discord.Guild>guild, channelData.getRoleExcludes())).join(", ");
-        excludes +=    channelData.getUserExcludes().length === 0 ? "" : (excludes === "" ? " It specially excludes: " : ", ") + (await Command.getDiscordUserTags(<Discord.Guild>guild, channelData.getUserExcludes())).join(", ");
-        excludes += excludes === "" ? "" : ".";
+        let excludes = roleExcludes.length === 0 ? "" : " It specially excludes: " + (await Command.getDiscordRoleTags(roleExcludes)).join(", ");
+        excludes +=    userExcludes.length === 0 ? "" : (excludes === "" ? " It specially excludes: " : ", ") + (await Command.getDiscordUserTags(userExcludes)).join(", ");
+        excludes +=    excludes === "" ? "" : ".";
 
         return " It applies to users without the Administrator, Manage Channel, or Manage Messages permissions in the channel." + includes + excludes;
     }
@@ -108,20 +108,18 @@ abstract class Command {
         return missingPermissions;
     }
 
-    private static async getDiscordUserTags(guild: Discord.Guild, userIDs: string[]): Promise<string[]> {
+    private static async getDiscordUserTags(members: Discord.GuildMember[]): Promise<string[]> {
         const array = [];
-        for (const member of await guild.members.fetch({user: userIDs, withPresences: false, force: true})) {
-            array.push("@" + member[1].user.tag);
+        for (const member of members) {
+            array.push("@" + member.user.tag);
         }
         return array;
     }
 
-    private static async getDiscordRoleTags(guild: Discord.Guild, roleIDs: string[]): Promise<string[]> {
+    private static async getDiscordRoleTags(roles: Discord.Role[]): Promise<string[]> {
         const array = [];
-        for (const role of await guild.roles.cache) {
-            if (roleIDs.includes(role[0])) {
-                array.push("@" + role[1].name);
-            }
+        for (const role of roles) {
+            array.push("@" + role.name);
         }
         return array;
     }

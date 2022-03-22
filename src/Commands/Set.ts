@@ -75,10 +75,12 @@ class Set extends Command {
     ];
 
     private readonly database: Database;
+    private readonly subjectToSlowmode: CallableFunction;
 
-    public constructor(id: Discord.Snowflake, database: Database) {
+    public constructor(id: Discord.Snowflake, database: Database, subjectToSlowmode: CallableFunction) {
         super(id);
         this.database = database;
+        this.subjectToSlowmode = subjectToSlowmode;
     }
 
     public getName(): string {
@@ -233,7 +235,7 @@ class Set extends Command {
         }
 
         return {
-            content: await this.command(<Discord.GuildMember>message.member, <Discord.TextChannel>message.channel, <Discord.Guild>message.guild, length, userInclusions, userExclusions, roleInclusions, roleExclusions)
+            content: await this.command(<Discord.GuildMember>message.member, <Discord.TextChannel>message.channel, <Discord.Guild>message.guild, channelData, length, userInclusions, userExclusions, roleInclusions, roleExclusions)
         }
     }
 
@@ -270,7 +272,7 @@ class Set extends Command {
         }
 
         return interaction.reply({
-            content: await this.command(<Discord.GuildMember>interaction.member, <Discord.TextChannel>interaction.channel, <Discord.Guild>interaction.guild, length, userIncludes, userExcludes, roleIncludes, roleExcludes)
+            content: await this.command(<Discord.GuildMember>interaction.member, <Discord.TextChannel>interaction.channel, <Discord.Guild>interaction.guild, undefined, length, userIncludes, userExcludes, roleIncludes, roleExcludes)
         })
     }
 
@@ -278,7 +280,7 @@ class Set extends Command {
      * Assumes the inclusions and exclusions are already verified (the author has the right to add those users and roles).
      * length in seconds.
      */
-    private async command(author: Discord.GuildMember, channel: Discord.TextChannel, guild: Discord.Guild, length: number,
+    private async command(author: Discord.GuildMember, channel: Discord.TextChannel, guild: Discord.Guild, channelData: ChannelData, length: number,
                           userInclusions: Discord.GuildMember[] | Discord.Snowflake[], userExclusions: Discord.GuildMember[] | Discord.Snowflake[],
                           roleInclusions: Discord.Role[] | Discord.Snowflake[], roleExclusions: Discord.Role[] | Discord.Snowflake[]): Promise<string> {
         // check that the member has the permissions to use this command
@@ -293,11 +295,14 @@ class Set extends Command {
             return invalidExceptions;
         }
 
+        if (this.subjectToSlowmode(author, channel, channelData || await this.database.getChannel(channel.id))) {
+            return `${author}, you cannot remove the slowmode on <#${channel.id}> because you are subject to it.`;
+        }
+
         // set the slowmode in the database and tell the Discord user it's done
         const SLOWMODE_TYPE: boolean | null = (<typeof Set>this.constructor).SLOWMODE_TYPE;
-        const channelData = new ChannelData(channel.id, guild.id, length, SLOWMODE_TYPE, Set.getIDs(<Discord.GuildMember[]>userExclusions), Set.getIDs(<Discord.GuildMember[]>userInclusions), Set.getIDs(<Discord.Role[]>roleExclusions), Set.getIDs(<Discord.Role[]>roleInclusions), [], []);
-        await this.database.setChannel(channelData);
-        return Command.getPrettyTime(length) + (SLOWMODE_TYPE === true ? "text" : SLOWMODE_TYPE === false ? "image" : "text and image") + " slowmode has been set!" + await Command.getSlowmodeSubjects(channelData, guild);
+        await this.database.setChannel(new ChannelData(channel.id, guild.id, length, SLOWMODE_TYPE, Set.getIDs(<Discord.GuildMember[]>userExclusions), Set.getIDs(<Discord.GuildMember[]>userInclusions), Set.getIDs(<Discord.Role[]>roleExclusions), Set.getIDs(<Discord.Role[]>roleInclusions), [], []));
+        return Command.getPrettyTime(length) + (SLOWMODE_TYPE === true ? "text" : SLOWMODE_TYPE === false ? "image" : "text and image") + " slowmode has been set!" + await Command.getSlowmodeSubjects(<Discord.GuildMember[]>userInclusions, <Discord.GuildMember[]>userExclusions, <Discord.Role[]>roleInclusions, <Discord.Role[]>roleExclusions);
     }
 
     /**

@@ -99,9 +99,9 @@ async function initializeBot() {
     commands = [
         new Info(client.user.id, config["support-code"]),
         new Remove(client.user.id, database, subjectToSlowmode),
-        new Set(client.user.id, database),
-        new SetImage(client.user.id, database),
-        new SetText(client.user.id, database),
+        new Set(client.user.id, database, subjectToSlowmode),
+        new SetImage(client.user.id, database, subjectToSlowmode),
+        new SetText(client.user.id, database, subjectToSlowmode),
         new Status(client.user.id, database)
     ];
     helpCommand = new Help(client.user.id, commands);
@@ -156,20 +156,18 @@ client.on("messageCreate", async (message) => {
     const channelID = channel.id;
     const channelData = await database.getChannel(channelID);
 
-    if (channelData !== null) {
-        if (subjectToSlowmode(message.member, channel, channelData)) {
-            // if both text and images, check slowmode. if just images + it has an image, check slowmode. if text + it has text, check slowmode.
-            if (channelData.isBoth() || (channelData.isImage() && message.attachments.size > 0) || (channelData.isText() && message.content.length > 0)) {
-                const messageTimestamp = message.createdTimestamp;
-                const userTimestamp = channelData.getUserTime(authorID);
+    if (subjectToSlowmode(message.member, channel, channelData)) {
+        // if both text and images, check slowmode. if just images + it has an image, check slowmode. if text + it has text, check slowmode.
+        if (channelData.isBoth() || (channelData.isImage() && message.attachments.size > 0) || (channelData.isText() && message.content.length > 0)) {
+            const messageTimestamp = message.createdTimestamp;
+            const userTimestamp = channelData.getUserTime(authorID);
 
-                if (userTimestamp === undefined || messageTimestamp >= userTimestamp + (channelData.getLength() * 1000)) {
-                    channelData.addUser(authorID, messageTimestamp);
-                    await database.setChannel(channelData);
-                } else {
-                    await message.delete();
-                    return;
-                }
+            if (userTimestamp === undefined || messageTimestamp >= userTimestamp + (channelData.getLength() * 1000)) {
+                channelData.addUser(authorID, messageTimestamp);
+                await database.setChannel(channelData);
+            } else {
+                await message.delete();
+                return;
             }
         }
     }
@@ -199,6 +197,7 @@ client.on("messageCreate", async (message) => {
  *  Returns a boolean indicating if the given member is subject to a slowmode in the given channel or not.
  */
 function subjectToSlowmode(member, channel, channelData) {
+    if (!channelData) return false;
     if (member.guild.ownerId === member.id) return false;
     if (channelData.includesUser(member.id)) return true;
     if (channelData.excludesUser(member.id)) return false;
