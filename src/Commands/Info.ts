@@ -69,7 +69,7 @@ class Info extends Command {
             description: "A Discord bot that adds more depth and customization to text channel slowmodes." +
                 "\n[Source Code](https://github.com/aeramos/BetterSlowmode)" +
                 `\n[Support Server](https://discord.com/invite/${this.supportCode})` +
-                `\n[Bot Invite](https://discord.com/api/oauth2/authorize?client_id=${this.id}&permissions=10240&scope=bot%20applications.commands)`
+                `\n[Bot Invite](https://discord.com/api/oauth2/authorize?client_id=${this.id}&permissions=26624&scope=bot%20applications.commands)`
         });
     }
 }

@@ -5,7 +5,7 @@
 
 #### A Discord bot that adds more depth and customization to text channel slowmodes, including text or image only slowmodes.
 
-### [Invite the bot to your server!](https://discord.com/api/oauth2/authorize?client_id=733458562101280788&permissions=10240&scope=bot%20applications.commands )
+### [Invite the bot to your server!](https://discord.com/api/oauth2/authorize?client_id=733458562101280788&permissions=26624&scope=bot%20applications.commands)
 ### [Join the Support Server!](https://discord.com/invite/JUE8keP)
 
 ## Overview
@@ -41,7 +41,7 @@ from Discord, bots in 100+ servers will no longer be able to view the contents o
 from Discord to view it, unless the bot is tagged (@) in the message. Just in case we don't get approval, BetterSlowmode
 now supports slash commands and using a tag (@BetterSlowmode) as the prefix.
 
-If slash commands are not enabled in your server, you may need to [re-invite BetterSlowmode](https://discord.com/api/oauth2/authorize?client_id=733458562101280788&permissions=10240&scope=bot%20applications.commands)
+If slash commands are not enabled in your server, you may need to [re-invite BetterSlowmode](https://discord.com/api/oauth2/authorize?client_id=733458562101280788&permissions=26624&scope=bot%20applications.commands)
 to your server. Don't worry, your slowmodes will not be removed because you don't need to kick the bot, just click on
 the new invite link.
 
@@ -65,7 +65,7 @@ commands can be used by just using @BetterSlowmode in place of the prefix (`%`).
 
 ## Host the bot yourself
 Since BetterSlowmode is open source, you can host the bot yourself for your own servers if you want. 
-This is not necessary since we have a public instance of the bot that you can invite [here](https://discord.com/api/oauth2/authorize?client_id=733458562101280788&permissions=10240&scope=bot).
+This is not necessary since we have a public instance of the bot that you can invite [here](https://discord.com/api/oauth2/authorize?client_id=733458562101280788&permissions=26624&scope=bot%20applications.commands).
 If you have a question about our public hosting methods or security, please ask us on the [Support Server](https://discord.com/invite/JUE8keP).
 
 If you host the bot yourself, we just require that you follow the terms of our software license, the [GNU AGPL3+](./LICENSE.txt).
