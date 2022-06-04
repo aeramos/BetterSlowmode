@@ -1,5 +1,5 @@
 # BetterSlowmode
-![Version: 0.1.0](https://img.shields.io/badge/version-0.1.0-blue.svg)
+![Version: 1.0](https://img.shields.io/badge/version-1.0-blue.svg)
 [![License: GNU AGPL-3.0+](https://img.shields.io/github/license/aeramos/BetterSlowmode)](./LICENSE.txt)
 [![Twitter: aeramos_](https://img.shields.io/twitter/follow/aeramos_.svg)](https://twitter.com/aeramos_)
 
@@ -9,48 +9,41 @@
 ### [Join the Support Server!](https://discord.com/invite/JUE8keP)
 
 ## Overview
-BetterSlowmode is a Discord bot designed to give users more power when defining slowmodes for text
-channels. With the bot, users can specify which types of content will be blocked during the slowmode:
-text or images or both.
+BetterSlowmode is a verified Discord bot designed to give users more power when defining slowmodes for text channels.
+With the bot, users can specify which types of content will be blocked during the slowmode: text or images or both.
 
-BetterSlowmode is designed for as much customization as possible. Your slowmodes can be as short as
-1 second, or as long as a year. You can even specially include or exclude certain members or roles to/from the slowmode!
+BetterSlowmode is designed for as much customization as possible. Your slowmodes can be as short as 1 second, or as long
+as a year. You can even specially include or exclude certain members or roles to/from the slowmode!
 
 ## How to use
-It's very simple! Try out the commands below to get started. Always remember that you can use `%help` for a list of all
-the commands, and `%help [command]` to get help for a specific command.
+It's very simple! Try out the commands below to get started. Always remember that you can use `@BetterSlowmode help` 
+for a list of all the commands, and `@BetterSlowmode help [command]` to get help for a specific command.
 ```
-%help
-%help set
-%set 1h 30m 10s -exclude @aeramos
-%set-image 1d -include @aeramos
-%set-text 1y
-%status
-%remove
-%info
+@BetterSlowmode help
+@BetterSlowmode help set
+@BetterSlowmode set 1h 30m 10s -exclude @aeramos
+@BetterSlowmode set-image 1d -include @aeramos
+@BetterSlowmode set-text 1y
+@BetterSlowmode status
+@BetterSlowmode remove
+@BetterSlowmode info
 ```
+
+BetterSlowmode also supports slash commands! If enabled, slash commands can be used by pressing `/` then selecting or
+typing any BetterSlowmode command, like `/set` or `/status`. 
+
+If slash commands are not enabled in your server, you may need to [re-invite BetterSlowmode](https://discord.com/api/oauth2/authorize?client_id=733458562101280788&permissions=26624&scope=bot%20applications.commands)
+to your server. Don't worry, your slowmodes will not be removed because you don't need to kick the bot, just click on
+the new invite link.
 
 ## Show your support
 We are on [top.gg](https://top.gg/bot/733458562101280788). If you like this bot, feel free to leave a vote and a review!
 
 Also, it would mean a lot to us if you starred our repository on [GitHub](https://github.com/aeramos/BetterSlowmode)!
 
-## Slash command and tag prefixes
-Due to [a change](https://support-dev.discord.com/hc/en-us/articles/4404772028055-Message-Content-Privileged-Intent-for-Verified-Bots)
-from Discord, bots in 100+ servers will no longer be able to view the contents of a message if they don't gain approval
-from Discord to view it, unless the bot is tagged (@) in the message. Just in case we don't get approval, BetterSlowmode
-now supports slash commands and using a tag (@BetterSlowmode) as the prefix.
-
-If slash commands are not enabled in your server, you may need to [re-invite BetterSlowmode](https://discord.com/api/oauth2/authorize?client_id=733458562101280788&permissions=26624&scope=bot%20applications.commands)
-to your server. Don't worry, your slowmodes will not be removed because you don't need to kick the bot, just click on
-the new invite link.
-
-Once enabled, slash commands can be used by pressing `/` then selecting or typing any BetterSlowmode command. Tag
-commands can be used by just using @BetterSlowmode in place of the prefix (`%`).
-
 ## Frequently Asked Questions
-- I set a slowmode with the `%set` command, but nothing shows up on Discord. It doesn't say "Slowmode is enabled" near
-  the Discord chat. Is the slowmode enabled?
+- I set a slowmode with the `@BetterSlowmode set` command, but nothing shows up on Discord. It doesn't say "Slowmode 
+  is enabled" near the Discord chat. Is the slowmode enabled?
     - Yes, the slowmode is enabled. It doesn't show the indicator because the bot doesn't use normal Discord Slowmodes,
       it manages the messages by itself. This is what allows it to create slowmodes just for images or exclude certain
       people from the slowmode for example.
@@ -58,7 +51,7 @@ commands can be used by just using @BetterSlowmode in place of the prefix (`%`).
     - No, the bot's working fine. The reason you are immune from the slowmode is that you're a moderator with the
       permissions to create a slowmode (Manage Channel or Administrator). See what happens when someone without those
       permissions (who isn't also excluded) tries to violate the slowmode. The bot won't let them.
-- How do I include a moderator to a slowmode? It doesn't let me.
+- How do I include a moderator to a slowmode? I use `@BetterSlowmode set -include` and it says I can't.
     - You can only specially include people who are less powerful than you. This is determined by the order of the roles
       in Discord. This is to prevent abuse of the special inclusions. You can change the order temporarily or just ask
       the owner to set the slowmode. The owner of the server can include anyone.
