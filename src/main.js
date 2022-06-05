@@ -171,7 +171,10 @@ client.on("messageCreate", async (message) => {
                         "\nBetterSlowmode needs the \"Manage Messages\" and \"Send Messages\" permissions to function." +
                         "\nIf you want to remove the slowmode, use: `@BetterSlowmode remove`. Use `@BetterSlowmode help` for help.");
                 } else {
-                    await message.delete();
+                    await message.delete().catch((e) => {
+                        console.error("Error: Attempted to delete message that has already been deleted.");
+                        console.error(e);
+                    });
                 }
                 return;
             }
