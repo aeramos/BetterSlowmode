@@ -166,7 +166,13 @@ client.on("messageCreate", async (message) => {
                 channelData.addUser(authorID, messageTimestamp);
                 await database.setChannel(channelData);
             } else {
-                await message.delete();
+                if (!message.guild.me.permissionsIn(message.channel).has(Discord.Permissions.FLAGS.MANAGE_MESSAGES)) {
+                    await sendMessage(message.channel, "Error: Could not delete message because BetterSlowmode does not have the \"Manage Messages\" permission in this channel." +
+                        "\nBetterSlowmode needs the \"Manage Messages\" and \"Send Messages\" permissions to function." +
+                        "\nIf you want to remove the slowmode, use: `@BetterSlowmode remove`. Use `@BetterSlowmode help` for help.");
+                } else {
+                    await message.delete();
+                }
                 return;
             }
         }
@@ -187,11 +193,28 @@ client.on("messageCreate", async (message) => {
     for (const command of commands) {
         if (command.getName() === parameters[0]) {
             parameters.shift();
-            await channel.send(await command.tagCommand(channelData, parameters, message));
+            await sendMessage(message.channel, await command.tagCommand(channelData, parameters, message))
             return;
         }
     }
 });
+
+// wrapper around sending messages that handles permissions and supports non-embed fallbacks for messages that use embeds
+function sendMessage(channel, message) {
+    if (channel.guild.me.permissionsIn(channel).has(Discord.Permissions.FLAGS.SEND_MESSAGES)) {
+        if (message.embeds) {
+            if (channel.guild.me.permissionsIn(channel).has(Discord.Permissions.FLAGS.EMBED_LINKS)) {
+                message.content = undefined;
+                return channel.send(message);
+            } else {
+                return channel.send(message.content +
+                "\n\nThis output usually uses embeds (special formatting), but BetterSlowmode does not have the \"Embed Links\" permission in this channel. Sorry!");
+            }
+        } else {
+            return channel.send(message);
+        }
+    }
+}
 
 /*
  *  Returns a boolean indicating if the given member is subject to a slowmode in the given channel or not.

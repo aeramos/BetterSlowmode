@@ -48,6 +48,10 @@ class Info extends Command {
 
     public async tagCommand(channelData: ChannelData, parameters: string[], message: Discord.Message): Promise<Discord.MessageOptions> {
         return {
+            content: "BetterSlowmode is a Discord bot that adds more depth and customization to text channel slowmodes, including text or image only slowmodes." +
+                "\nSource Code: https://github.com/aeramos/BetterSlowmode" +
+                `\nSupport Server: https://discord.com/invite/${this.supportCode}` +
+                `\nBot Invite: https://discord.com/api/oauth2/authorize?client_id=${this.id}&permissions=26624&scope=bot%20applications.commands`,
             embeds: [
                 this.command()
             ]
@@ -66,7 +70,7 @@ class Info extends Command {
         return new Discord.MessageEmbed({
             title: "About BetterSlowmode",
             url: "https://github.com/aeramos/BetterSlowmode",
-            description: "A Discord bot that adds more depth and customization to text channel slowmodes." +
+            description: "A Discord bot that adds more depth and customization to text channel slowmodes, including text or image only slowmodes." +
                 "\n[Source Code](https://github.com/aeramos/BetterSlowmode)" +
                 `\n[Support Server](https://discord.com/invite/${this.supportCode})` +
                 `\n[Bot Invite](https://discord.com/api/oauth2/authorize?client_id=${this.id}&permissions=26624&scope=bot%20applications.commands)`
