@@ -179,9 +179,11 @@ client.on("messageCreate", async (message) => {
     }
 
     // check if the message is directed at the bot using the prefix or the tag
+    let tagUsed = true;
     let parameters = message.content;
     if (message.content.startsWith(prefix)) {
         parameters = parameters.substring(prefix.length)
+        tagUsed = false;
     } else if (message.content.startsWith(`<@!${client.user.id}>`)) {
         parameters = parameters.substring(`<@!${client.user.id}>`.length);
     } else if (message.content.startsWith(`<@${client.user.id}>`)) {
@@ -196,6 +198,10 @@ client.on("messageCreate", async (message) => {
             await sendMessage(message.channel, await command.tagCommand(channelData, parameters, message))
             return;
         }
+    }
+    // don't want to just reply to anyone who uses the prefix. only reply to people who tag the bot specifically
+    if (tagUsed) {
+        await sendMessage(message.channel, await commands[0].tagCommand(channelData, [], message));
     }
 });
 

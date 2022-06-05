@@ -19,6 +19,7 @@ as a year. You can even specially include or exclude certain members or roles to
 It's very simple! Try out the commands below to get started. Always remember that you can use `@BetterSlowmode help` 
 for a list of all the commands, and `@BetterSlowmode help [command]` to get help for a specific command.
 ```
+@BetterSlowmode
 @BetterSlowmode help
 @BetterSlowmode help set
 @BetterSlowmode set 1h 30m 10s -exclude @aeramos
