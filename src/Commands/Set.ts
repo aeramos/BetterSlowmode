@@ -1,6 +1,6 @@
 /*
  * This file is part of BetterSlowmode.
- * Copyright (C) 2020, 2021, 2022 Alejandro Ramos
+ * Copyright (C) 2020, 2021, 2022, 2024 Alejandro Ramos
  *
  * BetterSlowmode is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -109,12 +109,21 @@ class Set extends Command {
             }
         }
 
+        const guild: Discord.Guild = <Discord.Guild>message.guild
+        const author: Discord.GuildMember = <Discord.GuildMember>message.member;
+
         // instantiate slowmode settings
         let length: number = 0;
-        const userExclusions: string[] = [];
         const userInclusions: string[] = [];
-        const roleExclusions: string[] = [];
+        const userExclusions: string[] = [];
         const roleInclusions: string[] = [];
+        const roleExclusions: string[] = [];
+
+        // used for final fetching of Discord objects before getting passed to next function
+        let userInclusionObjects: Discord.GuildMember[];
+        let userExclusionObjects: Discord.GuildMember[];
+        let roleInclusionObjects: Discord.Role[] = [];
+        let roleExclusionObjects: Discord.Role[] = [];
 
         let isExcluding: boolean | null = null;
         let providedTags: boolean = false;
@@ -234,12 +243,74 @@ class Set extends Command {
             }
         }
 
+        // throw error if any of the specified users/roles do not exist
+        // fetch userInclusionObjects
+        let temp: any = await guild.members.fetch({
+            user: userInclusions,
+            withPresences: false,
+            force: true,
+            time: 10000
+        });
+        if (temp.size === userInclusions.length) {
+            userInclusionObjects = Array.from(temp.values());
+        } else {
+            return {
+                content: `${author}, I could not find the user you mentioned. Are you sure they're in this server?`
+            }
+        }
+
+        // fetch userExclusionObjects
+        temp = await guild.members.fetch({
+            user: userExclusions,
+            withPresences: false,
+            force: true,
+            time: 10000
+        });
+        if (temp.size === userExclusions.length) {
+            userExclusionObjects = Array.from(temp.values());
+        } else {
+            return {
+                content: `${author}, I could not find the user you mentioned. Are you sure they're in this server?`
+            }
+        }
+
+        // fetch roleInclusionObjects
+        for (const roleInclusion of roleInclusions) {
+            temp = await guild.roles.fetch(roleInclusion, {
+                cache: true,
+                force: true
+            });
+            if (temp) {
+                roleInclusionObjects.push(temp)
+            } else {
+                return {
+                    content: `${author}, I could not find the role you mentioned. Are you sure it's in this server?`
+                }
+            }
+        }
+
+        // fetch roleExclusionObjects
+        for (const roleExclusion of roleExclusions) {
+            temp = await guild.roles.fetch(roleExclusion, {
+                cache: true,
+                force: true
+            });
+            if (temp) {
+                roleExclusionObjects.push(temp)
+            } else {
+                return {
+                    content: `${author}, I could not find the role you mentioned. Are you sure it's in this server?`
+                }
+            }
+        }
+
         return {
-            content: await this.command(<Discord.GuildMember>message.member, <Discord.TextChannel>message.channel, <Discord.Guild>message.guild, channelData, length, userInclusions, userExclusions, roleInclusions, roleExclusions)
+            content: await this.command(author, <Discord.TextChannel>message.channel, guild, channelData, length, userInclusionObjects, userExclusionObjects, roleInclusionObjects, roleExclusionObjects)
         }
     }
 
     public async slashCommand(interaction: Discord.CommandInteraction): Promise<void> {
+        // sum days/hours/minutes/seconds to get length in seconds
         const length = ((((((interaction.options.getNumber("days", false) || 0) * 24) + (interaction.options.getNumber("hours", false) || 0)) * 60) +
             (interaction.options.getNumber("minutes", false) || 0)) * 60) + (interaction.options.getNumber("seconds", false) || 0);
 
@@ -277,14 +348,15 @@ class Set extends Command {
     }
 
     /**
-     * Assumes the inclusions and exclusions are already verified (the author has the right to add those users and roles).
-     * length in seconds.
+     * Sets a slowmode with the given options and returns a confirmation message to the user or an error message if the user lacks permissions.
+     *
+     * Length of the slowmode must be given in seconds.
      */
     private async command(author: Discord.GuildMember, channel: Discord.TextChannel, guild: Discord.Guild, channelData: ChannelData, length: number,
-                          userInclusions: Discord.GuildMember[] | Discord.Snowflake[], userExclusions: Discord.GuildMember[] | Discord.Snowflake[],
-                          roleInclusions: Discord.Role[] | Discord.Snowflake[], roleExclusions: Discord.Role[] | Discord.Snowflake[]): Promise<string> {
+                          userInclusions: Discord.GuildMember[], userExclusions: Discord.GuildMember[],
+                          roleInclusions: Discord.Role[], roleExclusions: Discord.Role[]): Promise<string> {
         // check that the member has the permissions to use this command
-        const missingPermissions = Command.getMissingPermissions(<Discord.GuildMember>author, <Discord.TextChannel>channel, new Map([[Discord.Permissions.FLAGS.MANAGE_CHANNELS, "Manage Channel"]]), new Map([[Discord.Permissions.FLAGS.MANAGE_MESSAGES, "Manage Messages"]]));
+        const missingPermissions = Command.getMissingPermissions(author, channel, new Map([[Discord.Permissions.FLAGS.MANAGE_CHANNELS, "Manage Channel"]]), new Map([[Discord.Permissions.FLAGS.MANAGE_MESSAGES, "Manage Messages"]]));
         if (missingPermissions) {
             return missingPermissions;
         }
@@ -301,88 +373,32 @@ class Set extends Command {
 
         // set the slowmode in the database and tell the Discord user it's done
         const SLOWMODE_TYPE: boolean | null = (<typeof Set>this.constructor).SLOWMODE_TYPE;
-        await this.database.setChannel(new ChannelData(channel.id, guild.id, length, SLOWMODE_TYPE, Set.getIDs(<Discord.GuildMember[]>userExclusions), Set.getIDs(<Discord.GuildMember[]>userInclusions), Set.getIDs(<Discord.Role[]>roleExclusions), Set.getIDs(<Discord.Role[]>roleInclusions), [], []));
-        return Command.getPrettyTime(length) + (SLOWMODE_TYPE === true ? "text" : SLOWMODE_TYPE === false ? "image" : "text and image") + " slowmode has been set!" + await Command.getSlowmodeSubjects(<Discord.GuildMember[]>userInclusions, <Discord.GuildMember[]>userExclusions, <Discord.Role[]>roleInclusions, <Discord.Role[]>roleExclusions);
+        await this.database.setChannel(new ChannelData(channel.id, guild.id, length, SLOWMODE_TYPE, Set.getIDs(userExclusions), Set.getIDs(userInclusions), Set.getIDs(roleExclusions), Set.getIDs(roleInclusions), [], []));
+        return Command.getPrettyTime(length) + (SLOWMODE_TYPE === true ? "text" : SLOWMODE_TYPE === false ? "image" : "text and image") + " slowmode has been set!" + await Command.getSlowmodeSubjects(userInclusions, userExclusions, roleInclusions, roleExclusions);
     }
 
     /**
-     * Returns an error code if the given member does not have the right to add the given users or roles, or if they don't exist.
-     * Also converts the given exception id arrays to object arrays (GuildMember or Role) if they're not objects already.
+     *  @returns an error message if the given member does not have the right to add the given users or roles or if they don't exist.
      */
-    private static async checkExceptions(author: Discord.GuildMember, userInclusions: Discord.GuildMember[] | Discord.Snowflake[], userExclusions: Discord.GuildMember[] | Discord.Snowflake[], roleInclusions: Discord.Role[] | Discord.Snowflake[], roleExclusions: Discord.Role[] | Discord.Snowflake[]): Promise<string> {
+    private static async checkExceptions(author: Discord.GuildMember, userInclusions: Discord.GuildMember[], userExclusions: Discord.GuildMember[], roleInclusions: Discord.Role[], roleExclusions: Discord.Role[]): Promise<string> {
         const guild = author.guild;
-        for (let i = 0; i < userInclusions.length; i++) {
-            if (typeof userInclusions[i] === "string") {
-                let temp: Discord.Collection<Discord.Snowflake, Discord.GuildMember>;
-                try {
-                    temp = <Discord.Collection<Discord.Snowflake, Discord.GuildMember>>await guild.members.fetch({
-                        user: userInclusions,
-                        withPresences: false,
-                        force: true,
-                        time: 10000
-                    });
-                } catch(e) {
-                    console.log(e);
-                    return `${author}, something went wrong. Please try again. Please report to the developer if this keeps happening.`;
-                }
-                if (!temp.size) {
-                    return `${author}, I could not find the user you mentioned. Are you sure they're in this server?`;
-                }
-                for (let j = 0; j < temp.size; j++) {
-                    userInclusions[j] = <Discord.GuildMember>temp.at(j);
-                }
-            }
-            if (!Set.isMorePowerfulThanMember(guild, author, <Discord.GuildMember>userInclusions[i])) {
+        for (const includedUser of userInclusions) {
+            if (!Set.isMorePowerfulThanMember(guild, author, includedUser)) {
                 return `${author}, you can only include users whose highest role is ordered lower than your highest role. You can never include the owner or yourself.`;
             }
         }
-
-        for (let i = 0; i < userExclusions.length; i++) {
-            if (typeof userExclusions[i] === "string") {
-                let temp: Discord.Collection<Discord.Snowflake, Discord.GuildMember>;
-                try {
-                    temp = <Discord.Collection<Discord.Snowflake, Discord.GuildMember>>await guild.members.fetch({
-                        user: userExclusions,
-                        withPresences: false,
-                        force: true,
-                        time: 10000
-                    });
-                } catch(e) {
-                    console.log(e);
-                    return `${author}, something went wrong. Please try again. Please report to the developer if this keeps happening.`;
-                }
-                if (!temp.size) {
-                    return `${author}, I could not find the user you mentioned. Are you sure they're in this server?`;
-                }
-                for (let j = 0; j < temp.size; j++) {
-                    userExclusions[j] = <Discord.GuildMember>temp.at(j);
-                }
-            }
-            if (userInclusions.some((element) => (<Discord.GuildMember>element).id === (<Discord.GuildMember>userExclusions[i]).id)) {
+        for (const excludedUser of userExclusions) {
+            if (userInclusions.some(user => user.id === excludedUser.id)) {
                 return `${author}, you can not exclude a user or role that is already included.`;
             }
         }
-
-        for (let i = 0; i < roleInclusions.length; i++) {
-            if (typeof roleInclusions[i] === "string") {
-                roleInclusions[i] = await guild.roles.fetch(<Discord.Snowflake>roleInclusions[i], {cache: true, force: true}) || "";
-                if (!roleInclusions[i]) {
-                    return `${author}, I could not find the role you mentioned. Are you sure it's in this server?`;
-                }
-            }
-            if (!Set.isMorePowerfulThanRole(guild, author, <Discord.Role>roleInclusions[i])) {
+        for (const includedRole of roleInclusions) {
+            if (!Set.isMorePowerfulThanRole(guild, author, includedRole)) {
                 return `${author}, you can only include roles that are ordered lower than your highest role.`;
             }
         }
-
-        for (let i = 0; i < roleExclusions.length; i++) {
-            if (typeof roleExclusions[i] === "string") {
-                roleExclusions[i] = await guild.roles.fetch(<Discord.Snowflake>roleExclusions[i], {cache: true, force: true}) || "";
-                if (!roleExclusions[i]) {
-                    return `${author}, I could not find the role you mentioned. Are you sure it's in this server?`;
-                }
-            }
-            if (roleInclusions.some((element) => (<Discord.Role>element).id === (<Discord.Role>roleExclusions[i]).id)) {
+        for (const excludedRole of roleExclusions) {
+            if (roleInclusions.some(role => role.id === excludedRole.id)) {
                 return `${author}, you can not exclude a user or role that is already included.`;
             }
         }
@@ -419,7 +435,7 @@ class Set extends Command {
     private static getIDs(objects: Discord.GuildMember[] | Discord.Role[]): Discord.Snowflake[] {
         let ids = [];
         for (const item of objects) {
-            ids.push((<Discord.GuildMember | Discord.Role>item).id);
+            ids.push(item.id);
         }
         return ids;
     }
