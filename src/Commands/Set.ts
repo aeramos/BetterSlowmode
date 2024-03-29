@@ -114,10 +114,10 @@ class Set extends Command {
 
         // instantiate slowmode settings
         let length: number = 0;
-        const userInclusions: string[] = [];
-        const userExclusions: string[] = [];
-        const roleInclusions: string[] = [];
-        const roleExclusions: string[] = [];
+        const userInclusions: globalThis.Set<string> = new globalThis.Set<string>();
+        const userExclusions: globalThis.Set<string> = new globalThis.Set<string>();
+        const roleInclusions: globalThis.Set<string> = new globalThis.Set<string>();
+        const roleExclusions: globalThis.Set<string> = new globalThis.Set<string>();
 
         // used for final fetching of Discord objects before getting passed to next function
         let userInclusionObjects: Discord.GuildMember[];
@@ -203,28 +203,28 @@ class Set extends Command {
                 if (isExcluding) {
                     (parameter.match(/<@\d{1,20}>/g) || []).forEach((e, i, a) => {
                         a[i] = e.slice(2, -1)
-                        userExclusions.push(a[i])
+                        userExclusions.add(a[i])
                     });
                     (parameter.match(/<@!\d{1,20}>/g) || []).forEach((e, i, a) => {
                         a[i] = e.slice(3, -1)
-                        userExclusions.push(a[i])
+                        userExclusions.add(a[i])
                     });
                     (parameter.match(/<@&\d{1,20}>/g) || []).forEach((e, i, a) => {
                         a[i] = e.slice(3, -1)
-                        roleExclusions.push(a[i])
+                        roleExclusions.add(a[i])
                     });
                 } else {
                     (parameter.match(/<@\d{1,20}>/g) || []).forEach((e, i, a) => {
                         a[i] = e.slice(2, -1)
-                        userInclusions.push(a[i])
+                        userInclusions.add(a[i])
                     });
                     (parameter.match(/<@!\d{1,20}>/g) || []).forEach((e, i, a) => {
                         a[i] = e.slice(3, -1)
-                        userInclusions.push(a[i])
+                        userInclusions.add(a[i])
                     });
                     (parameter.match(/<@&\d{1,20}>/g) || []).forEach((e, i, a) => {
                         a[i] = e.slice(3, -1)
-                        roleInclusions.push(a[i])
+                        roleInclusions.add(a[i])
                     });
                 }
             }
@@ -246,12 +246,12 @@ class Set extends Command {
         // throw error if any of the specified users/roles do not exist
         // fetch userInclusionObjects
         let temp: any = await guild.members.fetch({
-            user: userInclusions,
+            user: Array.from(userInclusions.values()),
             withPresences: false,
             force: true,
             time: 10000
         });
-        if (temp.size === userInclusions.length) {
+        if (temp.size === userInclusions.size) {
             userInclusionObjects = Array.from(temp.values());
         } else {
             return {
@@ -261,12 +261,12 @@ class Set extends Command {
 
         // fetch userExclusionObjects
         temp = await guild.members.fetch({
-            user: userExclusions,
+            user: Array.from(userExclusions.values()),
             withPresences: false,
             force: true,
             time: 10000
         });
-        if (temp.size === userExclusions.length) {
+        if (temp.size === userExclusions.size) {
             userExclusionObjects = Array.from(temp.values());
         } else {
             return {
