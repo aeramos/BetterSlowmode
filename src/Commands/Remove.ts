@@ -1,6 +1,6 @@
 /*
  * This file is part of BetterSlowmode.
- * Copyright (C) 2020, 2021, 2022 Alejandro Ramos
+ * Copyright (C) 2020, 2021, 2022, 2024 Alejandro Ramos
  *
  * BetterSlowmode is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -60,8 +60,20 @@ class Remove extends Command {
         };
     }
 
-    public async tagCommand(channelData: ChannelData, parameters: string[], message: Discord.Message): Promise<Discord.MessageOptions> {
-        let channelID: string = message.channel.id;
+    /**
+     * Process the manual command inputs before sending to command() to perform the resets.
+     * Verifies that there is an existing slowmode in the given channel and that it is in the current server. Aborts if this is not the case.
+     *
+     * @param channelData Slowmode data for the channel the message is sent in. Value is null if there is none.
+     * @param parameters Each word sent as a parameter to this command
+     * @param message The raw Discord message for this request
+     *
+     * @returns A message to send to the user stating if the removal was successful or not
+     */
+    public async tagCommand(channelData: ChannelData | null, parameters: string[], message: Discord.Message): Promise<Discord.MessageOptions> {
+        let channel: Discord.GuildChannel = <Discord.GuildChannel>message.channel;
+
+        // if parameters were provided, parse the input and find a new channel and channelData
         if (parameters.length > 0) {
             if (parameters.length > 1) {
                 return {
@@ -69,53 +81,72 @@ class Remove extends Command {
                 };
             }
 
-            if (!channelData || channelData.getID() !== channelID) {
-                if (new RegExp(/^<#\d{1,20}>$/).test(parameters[0])) {
-                    channelID = parameters[0].slice(2, -1);
-                    channelData = undefined; // the database has not queried for the correct channel. let this.command do it.
-                } else {
+            // parse the tag. abort if the tag is invalid or if the channel isn't in the server
+            if (new RegExp(/^<#\d{1,20}>$/).test(parameters[0])) {
+                const channelID = parameters[0].slice(2, -1);
+                // regex is good. set the channel variable
+                const tempChannel = await (<Discord.Guild>message.guild).channels.fetch(channelID, {
+                    cache: true,
+                    force: true
+                }).catch(() => {
+                    return null;
+                });
+
+                // check if the channel exists in this server
+                if (tempChannel === null || tempChannel.guildId !== message.guildId) {
                     return {
-                        content: `${message.author}, invalid tags. Example: <@${this.id}> \`${this.getName()}\` <#${channelID}>`
-                    }
+                        content: `The channel <#${channelID}> does not exist in this server.`
+                    };
                 }
+                channel = <Discord.GuildChannel>tempChannel;
+                channelData = await this.database.getChannel(channel.id);
+            } else {
+                return {
+                    content: `${message.author}, invalid tag. Example: <@${this.id}> \`${this.getName()}\` <#${message.channelId}>`
+                };
             }
         }
 
+        // we have a valid channel. remove the slowmode.
         return {
-            content: await this.command(channelID, channelData, <Discord.GuildMember>message.member)
+            content: await this.command(channel, channelData, <Discord.GuildMember>message.member)
         };
     }
 
     public async slashCommand(interaction: Discord.CommandInteraction): Promise<void> {
+        // slash command guarantees that the channel exists in the server
+        const channel = <Discord.GuildChannel>interaction.options.getChannel("channel", true);
+        const channelData = await this.database.getChannel(channel.id);
         return interaction.reply({
-            content: await this.command(interaction.options.getChannel("channel", true).id, undefined, <Discord.GuildMember>interaction.member)
+            content: await this.command(channel, channelData, <Discord.GuildMember>interaction.member)
         });
     }
 
     /**
-     * @param channelID     Channel to remove the slowmode from
-     * @param channelData   Database reference to given channel. null if db queried and there is no ChannelData. undefined if db not queried yet.
-     * @param author
+     * @param channel Valid channel to remove the slowmode from. Channel must exist in the server.
+     * @param channelData Slowmode data for the given channel. Value is null if there is none.
+     * @param author The user making the request
+     *
+     * @returns A message to send to the user stating if the removal was successful or not
      */
-    private async command(channelID: Discord.Snowflake, channelData: ChannelData | null | undefined, author: Discord.GuildMember): Promise<string> {
-        // check permissions
-        const missingPermissions = Command.getMissingPermissions(author, channelID, new Map([[Discord.Permissions.FLAGS.MANAGE_CHANNELS, "Manage Channel"]]), new Map());
+    private async command(channel: Discord.GuildChannel, channelData: ChannelData | null, author: Discord.GuildMember): Promise<string> {
+        // check if there is a slowmode
+        if (channelData === null) {
+            return `There is no slowmode on ${channel} to remove.`;
+        }
+
+        // check if this user is allowed to remove the slowmode
+        const missingPermissions = Command.getMissingPermissions(author, channel, new Map([[Discord.Permissions.FLAGS.MANAGE_CHANNELS, "Manage Channel"]]), new Map());
         if (missingPermissions) {
             return missingPermissions;
         }
-
-        if (channelData === undefined) {
-            channelData = await this.database.getChannel(channelID);
-        }
-        if (channelData === null) {
-            return `There is no slowmode on <#${channelID}> to remove.`;
-        }
-        if (this.subjectToSlowmode(author, channelID, channelData)) {
-            return `${author}, you cannot remove the slowmode on <#${channelID}> because you are subject to it.`;
+        if (this.subjectToSlowmode(author, channel, channelData)) {
+            return `${author}, you cannot remove the slowmode on ${channel} because you are subject to it.`;
         }
 
-        await this.database.removeChannel(channelID);
-        return `The slowmode has been removed from <#${channelID}>.`;
+        // remove the slowmode
+        await this.database.removeChannel(channel.id);
+        return `The slowmode has been removed from ${channel}.`;
     }
 }
 export = Remove;

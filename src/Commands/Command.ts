@@ -1,6 +1,6 @@
 /*
  * This file is part of BetterSlowmode.
- * Copyright (C) 2021, 2022 Alejandro Ramos
+ * Copyright (C) 2021, 2022, 2024 Alejandro Ramos
  *
  * BetterSlowmode is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -34,10 +34,17 @@ abstract class Command {
 
     public abstract getSlashCommand(): object;
 
-    public abstract tagCommand(channelData: ChannelData, parameters: string[], message: Discord.Message): Promise<Discord.MessageOptions>;
+    public abstract tagCommand(channelData: ChannelData | null, parameters: string[], message: Discord.Message): Promise<Discord.MessageOptions>;
 
     public abstract slashCommand(interaction: Discord.CommandInteraction): Promise<void>;
 
+    /**
+     * Converts a time given in seconds to years, days, hours, minutes, and seconds in a user-friendly format.
+     *
+     * @param totalSeconds
+     * @returns a string in the form "1 hour, 23 minutes, 20 seconds"
+     * @protected
+     */
     protected static getPrettyTime(totalSeconds : number) : string {
         const years = Math.floor(totalSeconds / 31536000);
         const days = Math.floor(totalSeconds % 31536000 / 86400);
@@ -54,11 +61,17 @@ abstract class Command {
         return string;
     }
 
-    /*
-        checks if perms are met in a given channel
-        returns a list of user and bot permissions that are required, but the user or bot lacks, if applicable
+    /**
+     * Checks if permissions are met in
+     * @param author The user whose permissions are being checked
+     * @param channel The channel to check permissions in
+     * @param userPermissions List of permissions the user must have in the channel
+     * @param botPermissions List of permissions this bot must have in the channel
+     * @protected
+     *
+     * @returns A user-friendly list of required user/bot permissions that are missing. Returns an empty string if no permissions are missing.
      */
-    protected static getMissingPermissions(author: Discord.GuildMember, channel: Discord.GuildChannelResolvable, userPermissions: Map<bigint, string>, botPermissions: Map<bigint, string>): string {
+    protected static getMissingPermissions(author: Discord.GuildMember, channel: Discord.GuildChannel, userPermissions: Map<bigint, string>, botPermissions: Map<bigint, string>): string {
         let output = "";
         const bot = <Discord.GuildMember>author.guild.me;
 
@@ -95,10 +108,10 @@ abstract class Command {
         returns a string listing the given required permissions that the member lacks in the given channel
         returns an empty string if the member has the permissions
      */
-    private static getMissingMemberPermissions(member: Discord.GuildMember, channel: Discord.GuildChannelResolvable, requiredPermissions: Map<bigint, string>): String {
+    private static getMissingMemberPermissions(member: Discord.GuildMember, channel: Discord.GuildChannel, requiredPermissions: Map<bigint, string>): String {
         let missingPermissions = "";
         requiredPermissions.forEach((value, key) => {
-            if (!member.permissionsIn(channel).has(key)) {
+            if (!channel.permissionsFor(member).has(key)) {
                 if (missingPermissions !== "") {
                     missingPermissions += ", ";
                 }
