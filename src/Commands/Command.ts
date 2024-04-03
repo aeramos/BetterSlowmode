@@ -103,6 +103,93 @@ abstract class Command {
         return " It applies to users without the Administrator, Manage Channel, or Manage Messages permissions in the channel." + includes + excludes;
     }
 
+    /**
+     * Parses and gets a valid channel in the server from a user-provided tag.
+     *
+     * @param parameter The word that the user sent as a channel tag.
+     * @param guild The server the user's request was sent in.
+     * @param channelID The channel the user's request was sent in.
+     * @param authorID The user making the request.
+     * @param skipRegex Use if the regex checking has already been done.
+     * @protected
+     *
+     * @returns The channel if it exists in the server or an appropriate error message for the bot to respond with.
+     */
+    protected async getChannel(parameter: string, guild: Discord.Guild, channelID: Discord.Snowflake, authorID: Discord.Snowflake, skipRegex: boolean): Promise<Discord.GuildChannel | string> {
+        // parse the tag. abort if the tag is invalid
+        if (!skipRegex && !new RegExp(/^<#\d{1,20}>$/).test(parameter)) {
+            return `<@${authorID}>, your tag is invalid. Example: <@${this.id}> \`${this.getName()}\` <#${channelID}>`;
+        }
+
+        // regex is good, get the channelID from the parameter
+        const givenChannelID = parameter.slice(2, -1);
+        // regex is good. get the channel
+        const channel = await (<Discord.Guild>guild).channels.fetch(givenChannelID, {
+            cache: true,
+            force: true
+        }).catch(() => {
+            return null;
+        });
+
+        // check if the channel exists in this server
+        if (channel === null) {
+            return `The channel <#${givenChannelID}> does not exist in this server or the bot does not have permission to view it.`;
+        }
+        return <Discord.GuildChannel>channel;
+    }
+
+    /**
+     * Gets a list of valid GuildMembers from provided tags.
+     *
+     * @param userIDs A list of user IDs to search in the server for.
+     * @param guild The server.
+     * @param author The user making the request.
+     * @protected
+     *
+     * @returns A list of GuildMembers or an error message directed at the user.
+     */
+    protected static async getMembers(userIDs: Set<Discord.Snowflake>, guild: Discord.Guild, author: Discord.GuildMember): Promise<Set<Discord.GuildMember> | string> {
+        // throw error if any of the specified users do not exist
+        let userObjects: any = await guild.members.fetch({
+            user: Array.from(userIDs.values()),
+            withPresences: false,
+            force: true,
+            time: 10000
+        });
+        // if there are fewer objects than tags, some of the fetches failed
+        if (userObjects.size === userIDs.size) {
+            return new Set<Discord.GuildMember>(userObjects.values());
+        } else {
+            return `${author}, I could not find the user you mentioned. Are you sure they're in this server?`;
+        }
+    }
+
+    /**
+     * Gets a list of valid Roles from provided tags.
+     *
+     * @param roleIDs A list of role IDs to search in the server for.
+     * @param guild The server.
+     * @param author The user making the request.
+     * @protected
+     *
+     * @returns A list of Roles or an error message directed at the user.
+     */
+    protected static async getRoles(roleIDs: Set<Discord.Snowflake>, guild: Discord.Guild, author: Discord.GuildMember): Promise<Set<Discord.Role> | string> {
+        let roleObjects = new Set<Discord.Role>();
+        for (const roleTag of roleIDs) {
+            let roleObject = await guild.roles.fetch(roleTag, {
+                cache: true,
+                force: true,
+            });
+            if (roleObject) {
+                roleObjects.add(roleObject)
+            } else {
+                return `${author}, I could not find the role you mentioned. Are you sure it's in this server?`;
+            }
+        }
+        return roleObjects;
+    }
+
     /*
         helper function for getMissingPermissions
         returns a string listing the given required permissions that the member lacks in the given channel

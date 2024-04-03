@@ -1,6 +1,6 @@
 /*
  * This file is part of BetterSlowmode.
- * Copyright (C) 2021, 2022 Alejandro Ramos
+ * Copyright (C) 2021, 2022, 2024 Alejandro Ramos
  *
  * BetterSlowmode is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -21,9 +21,9 @@ import Command = require("./Command");
 import { ApplicationCommandOptionType, ChannelType } from "discord-api-types/v9";
 
 // @ts-ignore
-import ChannelData = require("../ChannelData");
+import * as ChannelData from "../ChannelData.js";
 // @ts-ignore
-import Database = require("../Database");
+import * as Database from "../Database.js";
 
 class Status extends Command {
     private readonly database: Database;
@@ -57,7 +57,7 @@ class Status extends Command {
         };
     }
 
-    public async tagCommand(channelData: ChannelData, parameters: string[], message: Discord.Message): Promise<Discord.MessageOptions> {
+    public async tagCommand(channelData: ChannelData | null, parameters: string[], message: Discord.Message): Promise<Discord.MessageOptions> {
         let channelID = message.channel.id;
         if (parameters.length > 0) {
             if (parameters.length > 1) {
@@ -66,13 +66,14 @@ class Status extends Command {
                 }
             }
 
-            if (new RegExp(/^<#\d{1,20}>$/).test(parameters[0])) {
-                channelID = parameters[0].slice(2, -1);
-                channelData = undefined;
-            } else {
+            const tempChannel = await this.getChannel(parameters[0], <Discord.Guild>message.guild, message.channelId, message.author.id, false);
+            if (typeof tempChannel === "string") {
                 return {
-                    content: `${message.author}, invalid tag. Example: <@${this.id}> ${this.getName()} <#${channelID}>`
-                }
+                    content: tempChannel
+                };
+            } else {
+                channelID = tempChannel.id;
+                channelData = await this.database.getChannel(channelID);
             }
         }
         return {
@@ -81,17 +82,22 @@ class Status extends Command {
     }
 
     public async slashCommand(interaction: Discord.CommandInteraction): Promise<void> {
+        // channel parameter is not required, so fall back to the current channel if no channel was provided
+        const channel: Discord.TextChannel = <Discord.TextChannel>(interaction.options.getChannel("channel", false) || <Discord.TextChannel>interaction.channel);
+        const channelData = await this.database.getChannel(channel.id);
+
+        if (!channel.viewable) {
+            return interaction.reply({
+                content: `The bot does not have permission to view ${channel}.`
+            });
+        }
+
         return interaction.reply({
-            content: await this.command(<Discord.Guild>interaction.guild, undefined, (interaction.options.getChannel("channel", false) || <Discord.TextChannel>interaction.channel).id)
+            content: await this.command(<Discord.Guild>interaction.guild, channelData, channel.id)
         });
     }
 
-    private async command(guild: Discord.Guild, channelData: ChannelData | null | undefined, channelID: Discord.Snowflake): Promise<string> {
-        if (channelData === null) {
-            return `There is no slowmode in <#${channelID}>.`;
-        }
-
-        channelData = await this.database.getChannel(channelID);
+    private async command(guild: Discord.Guild, channelData: ChannelData | null, channelID: Discord.Snowflake): Promise<string> {
         if (channelData === null) {
             return `There is no slowmode in <#${channelID}>.`;
         }
@@ -105,11 +111,20 @@ class Status extends Command {
 
         // some members or roles may not be shown if they are not in the server anymore or if they couldn't be fetched before the request timed out
         return "There is a " + length + (channelData.getType() === null ? "" : channelData.getType() ? "text " : "image ") + `slowmode in <#${channelID}>.`
-            + await Command.getSlowmodeSubjects(await Status.getMembers(guild, channelData.getUserIncludes()), await Status.getMembers(guild, channelData.getUserExcludes()),
-            await Status.getRoles(guild, channelData.getRoleIncludes()), await Status.getRoles(guild, channelData.getRoleExcludes()));
+            + await Command.getSlowmodeSubjects(await Status.getCurrentMembers(guild, channelData.getUserIncludes()), await Status.getCurrentMembers(guild, channelData.getUserExcludes()),
+            await Status.getCurrentRoles(guild, channelData.getRoleIncludes()), await Status.getCurrentRoles(guild, channelData.getRoleExcludes()));
     }
 
-    private static async getMembers(guild: Discord.Guild, memberIDs: Discord.Snowflake[]): Promise<Discord.GuildMember[]> {
+    /**
+     * Gets a list of members that still exist in the server.
+     *
+     * @param guild The server.
+     * @param memberIDs The list of IDs to search for.
+     * @private
+     *
+     * @returns A list of members. If any of the given members no longer exist, they will not be included in the list.
+     */
+    private static async getCurrentMembers(guild: Discord.Guild, memberIDs: Discord.Snowflake[]): Promise<Discord.GuildMember[]> {
         return await guild.members.fetch({
             user: memberIDs,
             withPresences: false,
@@ -120,7 +135,16 @@ class Status extends Command {
         }).catch(() => []);
     }
 
-    private static async getRoles(guild: Discord.Guild, roleIDs: Discord.Snowflake[]): Promise<Discord.Role[]> {
+    /**
+     * Gets a list of roles that still exist in the server.
+     *
+     * @param guild The server.
+     * @param roleIDs The list of IDs to search for.
+     * @private
+     *
+     * @returns A list of roles. If any of the given roles no longer exist, they will not be included in the list.
+     */
+    private static async getCurrentRoles(guild: Discord.Guild, roleIDs: Discord.Snowflake[]): Promise<Discord.Role[]> {
         let roles: Discord.Role[] = [];
         for (const roleID of roleIDs) {
             const role = await guild.roles.fetch(roleID, {cache: true, force: true});
