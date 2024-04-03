@@ -81,29 +81,15 @@ class Remove extends Command {
                 };
             }
 
-            // parse the tag. abort if the tag is invalid or if the channel isn't in the server
-            if (new RegExp(/^<#\d{1,20}>$/).test(parameters[0])) {
-                const channelID = parameters[0].slice(2, -1);
-                // regex is good. set the channel variable
-                const tempChannel = await (<Discord.Guild>message.guild).channels.fetch(channelID, {
-                    cache: true,
-                    force: true
-                }).catch(() => {
-                    return null;
-                });
-
-                // check if the channel exists in this server
-                if (tempChannel === null || tempChannel.guildId !== message.guildId) {
-                    return {
-                        content: `The channel <#${channelID}> does not exist in this server.`
-                    };
-                }
-                channel = <Discord.GuildChannel>tempChannel;
-                channelData = await this.database.getChannel(channel.id);
-            } else {
+            // get the channel. return the error code if there is an error
+            const tempChannel = await this.getChannel(parameters[0], <Discord.Guild>message.guild, message.channelId, message.author.id, false);
+            if (typeof tempChannel === "string") {
                 return {
-                    content: `${message.author}, invalid tag. Example: <@${this.id}> \`${this.getName()}\` <#${message.channelId}>`
+                    content: tempChannel
                 };
+            } else {
+                channel = tempChannel;
+                channelData = await this.database.getChannel(channel.id);
             }
         }
 
@@ -117,6 +103,13 @@ class Remove extends Command {
         // slash command guarantees that the channel exists in the server
         const channel = <Discord.GuildChannel>interaction.options.getChannel("channel", true);
         const channelData = await this.database.getChannel(channel.id);
+
+        if (!channel.viewable) {
+            return interaction.reply({
+                content: `The bot does not have permission to view ${channel}.`
+            });
+        }
+
         return interaction.reply({
             content: await this.command(channel, channelData, <Discord.GuildMember>interaction.member)
         });
