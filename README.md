@@ -27,6 +27,7 @@ for a list of all the commands, and `@BetterSlowmode help [command]` to get help
 @BetterSlowmode set-text 1y
 @BetterSlowmode status
 @BetterSlowmode remove
+@BetterSlowmode reset @aeramos
 @BetterSlowmode info
 ```
 

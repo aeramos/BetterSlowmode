@@ -1,6 +1,6 @@
 /*
  * This file is part of BetterSlowmode.
- * Copyright (C) 2020, 2021, 2022 Alejandro Ramos
+ * Copyright (C) 2020, 2021, 2022, 2024 Alejandro Ramos
  *
  * BetterSlowmode is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -33,6 +33,7 @@ const prefix = config["default-prefix"];
 const Help = require("./Commands/Help");
 const Info = require("./Commands/Info");
 const Remove = require("./Commands/Remove");
+const Reset = require("./Commands/Reset");
 const Set = require("./Commands/Set");
 const SetImage = require("./Commands/SetImage");
 const SetText = require("./Commands/SetText");
@@ -99,6 +100,7 @@ async function initializeBot() {
     commands = [
         new Info(client.user.id, config["support-code"]),
         new Remove(client.user.id, database, subjectToSlowmode),
+        new Reset(client.user.id, database, subjectToSlowmode),
         new Set(client.user.id, database, subjectToSlowmode),
         new SetImage(client.user.id, database, subjectToSlowmode),
         new SetText(client.user.id, database, subjectToSlowmode),
