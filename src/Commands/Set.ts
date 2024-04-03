@@ -21,9 +21,9 @@ import Command = require("./Command");
 import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
 
 // @ts-ignore
-import ChannelData = require("../ChannelData");
+import * as ChannelData from "../ChannelData.js";
 // @ts-ignore
-import Database = require("../Database");
+import * as Database from "../Database.js";
 
 class Set extends Command {
     protected static readonly SLOWMODE_TYPE: boolean | null = null;
@@ -102,7 +102,7 @@ class Set extends Command {
         }
     }
 
-    public async tagCommand(channelData: ChannelData, parameters: string[], message: Discord.Message): Promise<Discord.MessageOptions> {
+    public async tagCommand(channelData: ChannelData | null, parameters: string[], message: Discord.Message): Promise<Discord.MessageOptions> {
         if (parameters.length === 0) {
             return {
                 content: `${message.author}, you need to add parameters to this command. For more info enter: <@${this.id}> \`help ${this.getName()}\``
@@ -114,16 +114,16 @@ class Set extends Command {
 
         // instantiate slowmode settings
         let length: number = 0;
-        const userInclusions: globalThis.Set<string> = new globalThis.Set<string>();
-        const userExclusions: globalThis.Set<string> = new globalThis.Set<string>();
-        const roleInclusions: globalThis.Set<string> = new globalThis.Set<string>();
-        const roleExclusions: globalThis.Set<string> = new globalThis.Set<string>();
+        const userInclusions: globalThis.Set<Discord.Snowflake> = new globalThis.Set<Discord.Snowflake>();
+        const userExclusions: globalThis.Set<Discord.Snowflake> = new globalThis.Set<Discord.Snowflake>();
+        const roleInclusions: globalThis.Set<Discord.Snowflake> = new globalThis.Set<Discord.Snowflake>();
+        const roleExclusions: globalThis.Set<Discord.Snowflake> = new globalThis.Set<Discord.Snowflake>();
 
         // used for final fetching of Discord objects before getting passed to next function
-        let userInclusionObjects: Discord.GuildMember[];
-        let userExclusionObjects: Discord.GuildMember[];
-        let roleInclusionObjects: Discord.Role[] = [];
-        let roleExclusionObjects: Discord.Role[] = [];
+        let userInclusionObjects: globalThis.Set<Discord.GuildMember> = new globalThis.Set<Discord.GuildMember>();
+        let userExclusionObjects: globalThis.Set<Discord.GuildMember> = new globalThis.Set<Discord.GuildMember>();
+        let roleInclusionObjects: globalThis.Set<Discord.Role> = new globalThis.Set<Discord.Role>();
+        let roleExclusionObjects: globalThis.Set<Discord.Role> = new globalThis.Set<Discord.Role>();
 
         let isExcluding: boolean | null = null;
         let providedTags: boolean = false;
@@ -165,7 +165,7 @@ class Set extends Command {
                     }
                 }
 
-                // switch statement breaks everything down to milliseconds and adds it to length
+                // break everything down to seconds and adds it to length
                 // noinspection FallThroughInSwitchStatementJS
                 switch (parameter.slice(-1)) {
                     case "y":
@@ -185,7 +185,7 @@ class Set extends Command {
                 }
                 length += addedTime;
             } else { // this string must contain the parameter passed to an option: the tag of a user or role to exclude/include
-                // if we were given a tag but we are not excluding or including, something is wrong
+                // if we were given a tag, but we are not excluding or including, something is wrong
                 if (isExcluding === null) {
                     return {
                         content: `${message.author}, tags must be given after \`-include\` or \`-exclude\`.`
@@ -199,32 +199,27 @@ class Set extends Command {
                 }
                 providedTags = true;
 
-                // put each mention in an array that just contains the ids
+                // put each mention in the correct array that just contains the ids
                 if (isExcluding) {
-                    (parameter.match(/<@\d{1,20}>/g) || []).forEach((e, i, a) => {
-                        a[i] = e.slice(2, -1)
-                        userExclusions.add(a[i])
+                    // get user tags as an array. trim the brackets and @ from each one. add the resulting userIDs to the userExclusions list
+                    (parameter.match(/<@\d{1,20}>/g) || []).forEach(tag => {
+                        userExclusions.add(tag.slice(2, -1));
                     });
-                    (parameter.match(/<@!\d{1,20}>/g) || []).forEach((e, i, a) => {
-                        a[i] = e.slice(3, -1)
-                        userExclusions.add(a[i])
+                    (parameter.match(/<@!\d{1,20}>/g) || []).forEach(tag => {
+                        userExclusions.add(tag.slice(3, -1));
                     });
-                    (parameter.match(/<@&\d{1,20}>/g) || []).forEach((e, i, a) => {
-                        a[i] = e.slice(3, -1)
-                        roleExclusions.add(a[i])
+                    (parameter.match(/<@&\d{1,20}>/g) || []).forEach(tag => {
+                        roleExclusions.add(tag.slice(3, -1));
                     });
                 } else {
-                    (parameter.match(/<@\d{1,20}>/g) || []).forEach((e, i, a) => {
-                        a[i] = e.slice(2, -1)
-                        userInclusions.add(a[i])
+                    (parameter.match(/<@\d{1,20}>/g) || []).forEach(tag => {
+                        userInclusions.add(tag.slice(2, -1))
                     });
-                    (parameter.match(/<@!\d{1,20}>/g) || []).forEach((e, i, a) => {
-                        a[i] = e.slice(3, -1)
-                        userInclusions.add(a[i])
+                    (parameter.match(/<@!\d{1,20}>/g) || []).forEach(tag => {
+                        userInclusions.add(tag.slice(3, -1))
                     });
-                    (parameter.match(/<@&\d{1,20}>/g) || []).forEach((e, i, a) => {
-                        a[i] = e.slice(3, -1)
-                        roleInclusions.add(a[i])
+                    (parameter.match(/<@&\d{1,20}>/g) || []).forEach(tag => {
+                        roleInclusions.add(tag.slice(3, -1))
                     });
                 }
             }
@@ -245,63 +240,43 @@ class Set extends Command {
 
         // throw error if any of the specified users/roles do not exist
         // fetch userInclusionObjects
-        let temp: any = await guild.members.fetch({
-            user: Array.from(userInclusions.values()),
-            withPresences: false,
-            force: true,
-            time: 10000
-        });
-        if (temp.size === userInclusions.size) {
-            userInclusionObjects = Array.from(temp.values());
-        } else {
+        let temp: any = await Command.getMembers(userInclusions, guild, author);
+        if (typeof temp === "string") {
             return {
-                content: `${author}, I could not find the user you mentioned. Are you sure they're in this server?`
-            }
+                content: temp
+            };
+        } else {
+            userInclusionObjects = temp;
         }
 
         // fetch userExclusionObjects
-        temp = await guild.members.fetch({
-            user: Array.from(userExclusions.values()),
-            withPresences: false,
-            force: true,
-            time: 10000
-        });
-        if (temp.size === userExclusions.size) {
-            userExclusionObjects = Array.from(temp.values());
-        } else {
+        temp = await Command.getMembers(userExclusions, guild, author);
+        if (typeof temp === "string") {
             return {
-                content: `${author}, I could not find the user you mentioned. Are you sure they're in this server?`
-            }
+                content: temp
+            };
+        } else {
+            userExclusionObjects = temp;
         }
 
         // fetch roleInclusionObjects
-        for (const roleInclusion of roleInclusions) {
-            temp = await guild.roles.fetch(roleInclusion, {
-                cache: true,
-                force: true
-            });
-            if (temp) {
-                roleInclusionObjects.push(temp)
-            } else {
-                return {
-                    content: `${author}, I could not find the role you mentioned. Are you sure it's in this server?`
-                }
-            }
+        temp = await Command.getRoles(roleInclusions, guild, author);
+        if (typeof temp === "string") {
+            return {
+                content: temp
+            };
+        } else {
+            roleInclusionObjects = temp;
         }
 
         // fetch roleExclusionObjects
-        for (const roleExclusion of roleExclusions) {
-            temp = await guild.roles.fetch(roleExclusion, {
-                cache: true,
-                force: true
-            });
-            if (temp) {
-                roleExclusionObjects.push(temp)
-            } else {
-                return {
-                    content: `${author}, I could not find the role you mentioned. Are you sure it's in this server?`
-                }
-            }
+        temp = await Command.getRoles(roleExclusions, guild, author);
+        if (typeof temp === "string") {
+            return {
+                content: temp
+            };
+        } else {
+            roleExclusionObjects = temp;
         }
 
         return {
@@ -310,6 +285,13 @@ class Set extends Command {
     }
 
     public async slashCommand(interaction: Discord.CommandInteraction): Promise<void> {
+        const channel: Discord.TextChannel = <Discord.TextChannel>interaction.channel;
+        if (!channel.viewable) {
+            return interaction.reply({
+                content: `The bot does not have permission to view ${channel}.`
+            });
+        }
+
         // sum days/hours/minutes/seconds to get length in seconds
         const length = ((((((interaction.options.getNumber("days", false) || 0) * 24) + (interaction.options.getNumber("hours", false) || 0)) * 60) +
             (interaction.options.getNumber("minutes", false) || 0)) * 60) + (interaction.options.getNumber("seconds", false) || 0);
@@ -320,41 +302,52 @@ class Set extends Command {
             });
         }
 
-        let userIncludes: Discord.GuildMember[] = [];
-        let userExcludes: Discord.GuildMember[] = [];
-        let roleIncludes: Discord.Role[] = [];
-        let roleExcludes: Discord.Role[] = [];
+        let userIncludes: globalThis.Set<Discord.GuildMember> = new globalThis.Set<Discord.GuildMember>();
+        let userExcludes: globalThis.Set<Discord.GuildMember> = new globalThis.Set<Discord.GuildMember>();
+        let roleIncludes: globalThis.Set<Discord.Role> = new globalThis.Set<Discord.Role>();
+        let roleExcludes: globalThis.Set<Discord.Role> = new globalThis.Set<Discord.Role>();
 
         let include = interaction.options.getMentionable("include", false);
         if (include !== null) {
             if (include instanceof Discord.GuildMember) {
-                userIncludes.push(include);
+                userIncludes.add(include);
             } else {
-                roleIncludes.push(<Discord.Role>include);
+                roleIncludes.add(<Discord.Role>include);
             }
         }
         let exclude = interaction.options.getMentionable("exclude", false);
         if (exclude !== null) {
             if (exclude instanceof Discord.GuildMember) {
-                userExcludes.push(exclude);
+                userExcludes.add(exclude);
             } else {
-                roleExcludes.push(<Discord.Role>exclude);
+                roleExcludes.add(<Discord.Role>exclude);
             }
         }
 
         return interaction.reply({
-            content: await this.command(<Discord.GuildMember>interaction.member, <Discord.TextChannel>interaction.channel, <Discord.Guild>interaction.guild, undefined, length, userIncludes, userExcludes, roleIncludes, roleExcludes)
+            content: await this.command(<Discord.GuildMember>interaction.member, channel, <Discord.Guild>interaction.guild, await this.database.getChannel(interaction.channelId), length, userIncludes, userExcludes, roleIncludes, roleExcludes)
         })
     }
 
     /**
-     * Sets a slowmode with the given options and returns a confirmation message to the user or an error message if the user lacks permissions.
+     * Sets a new slowmode in the current channel, replacing the existing one if necessary and if the requester is not subject to it.
      *
-     * Length of the slowmode must be given in seconds.
+     * @param author The requester. Must have Manage Messages permissions in the channel.
+     * @param channel The channel the request was made in.
+     * @param guild The server this is happening in.
+     * @param channelData Current slowmode data for the channel, null if there is no slowmode present. This will be overwritten.
+     * @param length The length of the new slowmode, in seconds.
+     * @param userInclusions Set of members to include in the slowmode. The author must be more powerful than them.
+     * @param userExclusions Set of members to exclude from the slowmode. They must not already be included.
+     * @param roleInclusions Set of roles to include in the slowmode. The author's highest role must be higher than them.
+     * @param roleExclusions Set of roles to exclude from the slowmode. They must not already be included.
+     * @private
+     *
+     * @returns A message to send to the user stating if the slowmode was successfully set or not.
      */
-    private async command(author: Discord.GuildMember, channel: Discord.TextChannel, guild: Discord.Guild, channelData: ChannelData, length: number,
-                          userInclusions: Discord.GuildMember[], userExclusions: Discord.GuildMember[],
-                          roleInclusions: Discord.Role[], roleExclusions: Discord.Role[]): Promise<string> {
+    private async command(author: Discord.GuildMember, channel: Discord.TextChannel, guild: Discord.Guild, channelData: ChannelData | null, length: number,
+                          userInclusions: globalThis.Set<Discord.GuildMember>, userExclusions: globalThis.Set<Discord.GuildMember>,
+                          roleInclusions: globalThis.Set<Discord.Role>, roleExclusions: globalThis.Set<Discord.Role>): Promise<string> {
         // check that the member has the permissions to use this command
         const missingPermissions = Command.getMissingPermissions(author, channel, new Map([[Discord.Permissions.FLAGS.MANAGE_CHANNELS, "Manage Channel"]]), new Map([[Discord.Permissions.FLAGS.MANAGE_MESSAGES, "Manage Messages"]]));
         if (missingPermissions) {
@@ -362,19 +355,19 @@ class Set extends Command {
         }
 
         // check that the member has the right to add the users/roles they mentioned
-        const invalidExceptions = await Set.checkExceptions(author, userInclusions, userExclusions, roleInclusions, roleExclusions);
+        const invalidExceptions = await Set.checkExceptions(author, Array.from(userInclusions.values()), Array.from(userExclusions.values()), Array.from(roleInclusions.values()), Array.from(roleExclusions.values()));
         if (invalidExceptions) {
             return invalidExceptions;
         }
 
-        if (this.subjectToSlowmode(author, channel, channelData || await this.database.getChannel(channel.id))) {
+        if (this.subjectToSlowmode(author, channel, channelData)) {
             return `${author}, you cannot remove the slowmode on <#${channel.id}> because you are subject to it.`;
         }
 
         // set the slowmode in the database and tell the Discord user it's done
         const SLOWMODE_TYPE: boolean | null = (<typeof Set>this.constructor).SLOWMODE_TYPE;
-        await this.database.setChannel(new ChannelData(channel.id, guild.id, length, SLOWMODE_TYPE, Set.getIDs(userExclusions), Set.getIDs(userInclusions), Set.getIDs(roleExclusions), Set.getIDs(roleInclusions), [], []));
-        return Command.getPrettyTime(length) + (SLOWMODE_TYPE === true ? "text" : SLOWMODE_TYPE === false ? "image" : "text and image") + " slowmode has been set!" + await Command.getSlowmodeSubjects(userInclusions, userExclusions, roleInclusions, roleExclusions);
+        await this.database.setChannel(new ChannelData(channel.id, guild.id, length, SLOWMODE_TYPE, Set.getIDs(Array.from(userExclusions.values())), Set.getIDs(Array.from(userInclusions.values())), Set.getIDs(Array.from(roleExclusions.values())), Set.getIDs(Array.from(roleInclusions.values())), [], []));
+        return Command.getPrettyTime(length) + (SLOWMODE_TYPE === true ? "text" : SLOWMODE_TYPE === false ? "image" : "text and image") + " slowmode has been set!" + await Command.getSlowmodeSubjects(Array.from(userInclusions.values()), Array.from(userExclusions.values()), Array.from(roleInclusions.values()), Array.from(roleExclusions.values()));
     }
 
     /**
