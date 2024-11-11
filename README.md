@@ -44,19 +44,22 @@ We are on [top.gg](https://top.gg/bot/733458562101280788). If you like this bot,
 Also, it would mean a lot to us if you starred our repository on [GitHub](https://github.com/aeramos/BetterSlowmode)!
 
 ## Frequently Asked Questions
-- I set a slowmode with the `@BetterSlowmode set` command, but nothing shows up on Discord. It doesn't say "Slowmode 
-  is enabled" near the Discord chat. Is the slowmode enabled?
+- I set a slowmode with the `@BetterSlowmode set` command, but nothing shows up in Discord. It doesn't say "Slowmode 
+  is enabled" at the bottom of the screen. Is the slowmode enabled?
     - Yes, the slowmode is enabled. It doesn't show the indicator because the bot doesn't use normal Discord Slowmodes,
-      it manages the messages by itself. This is what allows it to create slowmodes just for images or exclude certain
-      people from the slowmode for example.
+      it manages the messages by itself. Through this, the bot is able to create slowmodes just for images or slowmodes
+      that exclude certain members.
 - The slowmode doesn't do anything. I set a slowmode, but it doesn't delete any of my messages. Is it broken?
-    - No, the bot's working fine. The reason you are immune from the slowmode is that you're a moderator with the
-      permissions to create a slowmode (Manage Channel or Administrator). See what happens when someone without those
-      permissions (who isn't also excluded) tries to violate the slowmode. The bot won't let them.
-- How do I include a moderator to a slowmode? I use `@BetterSlowmode set -include` and it says I can't.
+    - No, this is correct behavior. You are immune from any slowmodes you create because you have either the Manage
+      Channel of Administrator permissions in the channel. The slowmode will apply to members who don't have those
+      permissions, according to the rules you set.
+- How do I include a moderator to a slowmode?
     - You can only specially include people who are less powerful than you. This is determined by the order of the roles
-      in Discord. This is to prevent abuse of the special inclusions. You can change the order temporarily or just ask
-      the owner to set the slowmode. The owner of the server can include anyone.
+      in Discord. You can change the order in the server settings or ask the owner to set the slowmode. The owner of the
+      server can include anyone.
+- Can I include multiple users and roles to a slowmode? The slash command only lets me choose one.
+  - Yes! If you use the `@BetterSlowmode set` command, you can add as many `-include` or `-exclude` options as you want.
+    For example `@BetterSlowmode set -include @john @peter -exclude @james @matthew`.
 
 ## Host the bot yourself
 Since BetterSlowmode is open source, you can host the bot yourself for your own servers if you want. 
@@ -89,7 +92,7 @@ npm start
 - Email: [aeramos.work@gmail.com](mailto:aeramos.work@gmail.com)
 
 ## License / Terms of Service
-Copyright © 2020, 2021, 2022 [Alejandro Ramos](https://github.com/aeramos).
+Copyright (C) 2020, 2021, 2022, 2024 [Alejandro Ramos](https://github.com/aeramos).
 
 BetterSlowmode is free software: you can redistribute it and/or modify it under the terms of the
 [GNU Affero General Public License](./LICENSE.txt) as published by the Free Software Foundation, either version 3 of the

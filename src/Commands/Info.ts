@@ -1,6 +1,6 @@
 /*
  * This file is part of BetterSlowmode.
- * Copyright (C) 2020, 2021, 2022 Alejandro Ramos
+ * Copyright (C) 2020, 2021, 2022, 2024 Alejandro Ramos
  *
  * BetterSlowmode is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -36,22 +36,18 @@ class Info extends Command {
 
     public getHelp(): string {
         return `Usage: <@${this.id}> \`info\`` +
-            "\nPrints info about the bot and a link to the code.";
+            "\nPrints information about the bot with links to the code, FAQ, support server, and the invite link.";
     }
 
     public getSlashCommand(): object {
         return {
             name: "info",
-            description: "Prints info about the bot and a link to the code."
+            description: "Prints information about the bot with links to the code, FAQ, support server, and the invite link."
         };
     }
 
     public async tagCommand(channelData: ChannelData, parameters: string[], message: Discord.Message): Promise<Discord.MessageOptions> {
         return {
-            content: "BetterSlowmode is a Discord bot that adds more depth and customization to text channel slowmodes, including text or image only slowmodes." +
-                "\nSource Code: https://github.com/aeramos/BetterSlowmode" +
-                `\nSupport Server: https://discord.com/invite/${this.supportCode}` +
-                `\nBot Invite: https://discord.com/api/oauth2/authorize?client_id=${this.id}&permissions=26624&scope=bot%20applications.commands`,
             embeds: [
                 this.command()
             ]
@@ -61,7 +57,7 @@ class Info extends Command {
     public async slashCommand(interaction: Discord.CommandInteraction): Promise<void> {
         return interaction.reply({
             embeds: [
-                await this.command()
+                this.command()
             ]
         });
     }
@@ -71,6 +67,7 @@ class Info extends Command {
             title: "About BetterSlowmode",
             url: "https://github.com/aeramos/BetterSlowmode",
             description: "A Discord bot that adds more depth and customization to text channel slowmodes, including text or image only slowmodes." +
+                "\n[FAQ](https://github.com/aeramos/BetterSlowmode?tab=readme-ov-file#frequently-asked-questions)" +
                 "\n[Source Code](https://github.com/aeramos/BetterSlowmode)" +
                 `\n[Support Server](https://discord.com/invite/${this.supportCode})` +
                 `\n[Bot Invite](https://discord.com/api/oauth2/authorize?client_id=${this.id}&permissions=26624&scope=bot%20applications.commands)`

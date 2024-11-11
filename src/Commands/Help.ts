@@ -1,6 +1,6 @@
 /*
  * This file is part of BetterSlowmode.
- * Copyright (C) 2020, 2021, 2022 Alejandro Ramos
+ * Copyright (C) 2020, 2021, 2022, 2024 Alejandro Ramos
  *
  * BetterSlowmode is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -64,6 +64,7 @@ class Help extends Command {
     }
 
     public async tagCommand(channelData: ChannelData, parameters: string[], message: Discord.Message): Promise<Discord.MessageOptions> {
+        // if no command was given, print the generic help listing. if a *single* command was given, print the help for that command, otherwise print help for the help command
         if (parameters.length === 0) {
             return {
                 content: this.command(null)
@@ -106,6 +107,8 @@ class Help extends Command {
 
         // give an example using a random command
         output += `\nExample: <@${this.id}> \`help ${this.commands[Math.floor(Math.random() * this.commands.length)].getName()}\``;
+
+        output += `\n\nTo read the FAQ or join the support server, use: <@${this.id}> \`info\``
         return output;
     }
 }
