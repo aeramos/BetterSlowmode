@@ -17,7 +17,7 @@
  */
 
 import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
-import Set = require("./Set");
+import Set from "./Set.js";
 
 class SetText extends Set {
     protected static readonly SLOWMODE_TYPE: boolean | null = true;
@@ -41,4 +41,4 @@ class SetText extends Set {
         }
     }
 }
-export = SetText;
+export default SetText;

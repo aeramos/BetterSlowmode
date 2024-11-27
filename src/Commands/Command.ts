@@ -16,10 +16,10 @@
  * along with BetterSlowmode.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import Discord = require("discord.js");
+import Discord from "discord.js";
 
 // @ts-ignore
-import ChannelData = require("../ChannelData")
+import ChannelData from "../ChannelData.js";
 
 abstract class Command {
     protected readonly id: Discord.Snowflake;
@@ -224,4 +224,4 @@ abstract class Command {
         return array;
     }
 }
-export = Command;
+export default Command;

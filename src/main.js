@@ -16,28 +16,37 @@
  * along with BetterSlowmode.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-const Discord = require("discord.js");
-const client = new Discord.Client({intents: [Discord.Intents.FLAGS.GUILDS, Discord.Intents.FLAGS.GUILD_MESSAGES]});
+import Discord from "discord.js";
+import { REST } from "@discordjs/rest";
+import { Routes } from "discord-api-types/rest/v9";
 
-const { REST } = require("@discordjs/rest");
-const { Routes } = require("discord-api-types/rest/v9");
+import config from "../config/config.json" with { type: "json" };
+import Database from "./Database.js";
+import Help from "./Commands/Help.js";
+import Info from "./Commands/Info.js";
+import Remove from "./Commands/Remove.js";
+import Reset from "./Commands/Reset.js";
+import Set from "./Commands/Set.js";
+import SetImage from "./Commands/SetImage.js";
+import SetText from "./Commands/SetText.js";
+import Status from "./Commands/Status.js";
 
-const config = require("../config/config.json");
-
-const Database = require("./Database");
+const client = new Discord.Client({
+    intents: [Discord.Intents.FLAGS.GUILDS, Discord.Intents.FLAGS.GUILD_MESSAGES],
+    makeCache: Discord.Options.cacheWithLimits(Discord.Options.defaultMakeCacheSettings),
+    sweepers: {
+        ...Discord.Options.defaultSweeperSettings,
+        messages: { // 30 second message cache
+            lifetime: 30,
+            interval: 60
+        }
+    }
+});
 let database;
 let ready = false;
 
 const prefix = config["default-prefix"];
 
-const Help = require("./Commands/Help");
-const Info = require("./Commands/Info");
-const Remove = require("./Commands/Remove");
-const Reset = require("./Commands/Reset");
-const Set = require("./Commands/Set");
-const SetImage = require("./Commands/SetImage");
-const SetText = require("./Commands/SetText");
-const Status = require("./Commands/Status");
 let commands;
 let helpCommand;
 
@@ -47,29 +56,24 @@ process.on("SIGTERM", shutDownBot);
 client.on("ready", async () => {
     console.log(`Logged in as ${client.user.tag}`);
 
-    await initializeBot();
-    console.log("Database cleaned.");
+    database = new Database(config["database-url"]);
+    commands = [
+        new Info(client.user.id, config["support-code"]),
+        new Remove(client.user.id, database, subjectToSlowmode),
+        new Reset(client.user.id, database, subjectToSlowmode),
+        new Set(client.user.id, database, subjectToSlowmode),
+        new SetImage(client.user.id, database, subjectToSlowmode),
+        new SetText(client.user.id, database, subjectToSlowmode),
+        new Status(client.user.id, database)
+    ];
+    helpCommand = new Help(client.user.id, commands);
+    commands.splice(0, 0, helpCommand);
 
-    // set up slash commands
-    const slashCommands = [];
-    for (const command of commands) {
-            const slashCommand = command.getSlashCommand();
-        slashCommand.name = command.getName();
-        slashCommands.push(slashCommand);
-    }
-    const rest = new REST({ version: '9' }).setToken(config["bot-token"]);
-    try {
-        console.log("Reloading slash commands.");
-        await rest.put(Routes.applicationCommands(client.user.id), { body : slashCommands });
-        console.log("Successfully reloaded slash commands.");
-    } catch (error) {
-        console.log(error);
-        shutDownBot("Slash command registration error.");
-    }
-
-    client.user.setActivity(prefix + "help for help!")
-    ready = true;
-    console.log("Bot is ready!");
+    return Promise.all([initializeDB(client, database), initializeSlashCommands(client, config, commands)]).then(() => {
+        client.user.setActivity(prefix + "help for help!")
+        ready = true;
+        console.log("Bot is ready!");
+    });
 });
 
 client.on("interactionCreate", async (interaction) => {
@@ -87,27 +91,47 @@ client.on("interactionCreate", async (interaction) => {
     }
 });
 
-// set up the database and remove channels that are no longer valid
-async function initializeBot() {
-    const serverIDs = client.guilds.cache.keys();
-    const channelIDs = client.channels.cache.filter(channel => channel.type === "GUILD_TEXT").keys();
+/**
+ * Remove expired slowmodes and information about servers/channels we no longer have access to from the database.
+ *
+ * @param {Discord.Client} client
+ * @param {Database} database
+ * @returns {Promise<void>}
+ */
+async function initializeDB(client, database) {
+    const serverIDs = Array.from(client.guilds.cache.keys());
+    const channelIDs = Array.from(client.channels.cache.filter(channel => channel.type === "GUILD_TEXT").keys());
 
-    await Database.build(config["database-url"]).then(async (db) => {
-        database = db;
-        await database.sanitizeDatabase(serverIDs, channelIDs);
-    });
+    await database.initialize();
+    const [deleted, expired] = await database.sanitizeDatabase(serverIDs, channelIDs);
+    console.log(`Init: Deleted channels: ${deleted}`);
+    console.log(`Init: Expired slowmodes: ${expired}`);
+}
 
-    commands = [
-        new Info(client.user.id, config["support-code"]),
-        new Remove(client.user.id, database, subjectToSlowmode),
-        new Reset(client.user.id, database, subjectToSlowmode),
-        new Set(client.user.id, database, subjectToSlowmode),
-        new SetImage(client.user.id, database, subjectToSlowmode),
-        new SetText(client.user.id, database, subjectToSlowmode),
-        new Status(client.user.id, database)
-    ];
-    helpCommand = new Help(client.user.id, commands);
-    commands.splice(0, 0, helpCommand);
+/**
+ * Register Discord slash commands using Command#getSlashCommand()
+ *
+ * @param {Discord.Client} client
+ * @param {config} config
+ * @param {[Command]} commands
+ * @returns {Promise<void>}
+ */
+async function initializeSlashCommands(client, config, commands) {
+    const slashCommands = [];
+    for (const command of commands) {
+        const slashCommand = command.getSlashCommand();
+        slashCommand.name = command.getName();
+        slashCommands.push(slashCommand);
+    }
+    const rest = new REST({ version: '9' }).setToken(config["bot-token"]);
+    try {
+        console.log("Reloading slash commands.");
+        await rest.put(Routes.applicationCommands(client.user.id), { body : slashCommands });
+        console.log("Successfully reloaded slash commands.");
+    } catch (error) {
+        console.log(error);
+        shutDownBot("Slash command registration error.");
+    }
 }
 
 function shutDownBot(signal) {
@@ -227,8 +251,11 @@ function sendMessage(channel, message) {
     }
 }
 
-/*
- *  Returns a boolean indicating if the given member is subject to a slowmode in the given channel or not.
+/**
+ * @param {Discord.GuildMember} member
+ * @param {Discord.TextChannel} channel
+ * @param {ChannelData} channelData
+ * @returns {boolean} true if there is a slowmode in the channel and it applies to the given member
  */
 function subjectToSlowmode(member, channel, channelData) {
     if (!channelData) return false;

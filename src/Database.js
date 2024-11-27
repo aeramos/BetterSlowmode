@@ -1,6 +1,6 @@
 /*
  * This file is part of BetterSlowmode.
- * Copyright (C) 2021 Alejandro Ramos
+ * Copyright (C) 2021, 2024 Alejandro Ramos
  *
  * BetterSlowmode is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,13 +16,16 @@
  * along with BetterSlowmode.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-const ChannelData = require("./ChannelData");
-const { Sequelize, DataTypes, Op } = require("sequelize");
+import ChannelData from "./ChannelData.js";
+import { Sequelize, Model, DataTypes, Op } from "sequelize";
 
 class Database {
     #sequelize;
     #ChannelData
 
+    /**
+     * @param {string} databaseURL a valid connection string to log into the database
+     */
     constructor(databaseURL) {
         this.#sequelize = new Sequelize(databaseURL, {
             dialectOptions: {
@@ -30,21 +33,15 @@ class Database {
                     rejectUnauthorized: false
                 }
             },
-            logging: (msg) => {
-                if (!msg.startsWith("Executing (default): SELECT \"id\", \"serverID\"")) {
-                    console.log(msg);
-                }
-            }
+            logging: false
         });
     }
 
-    // used so that I can await this function and come back with a fully ready database that I can perform operations with
-    static async build(databaseURL) {
-        const database = new Database(databaseURL);
-        await database.initialize();
-        return database;
-    }
-
+    /**
+     * Log into the database server and create the table if it doesn't already exist
+     *
+     * @returns {Promise<Model>} the Sequelize Model instance for the ChannelData table
+     */
     async initialize() {
         this.#ChannelData = await this.#sequelize.define("ChannelData", {
             id: {
@@ -94,7 +91,10 @@ class Database {
         await this.#ChannelData.sync();
     }
 
-    // returns ChannelData object
+    /**
+     * @param {string} id Discord channel ID
+     * @returns {Promise<ChannelData|null>} the row corresponding to the channel ID, if it has a slowmode
+     */
     async getChannel(id) {
         const model = await this.getDBObject(id);
         if (model === null) {
@@ -162,17 +162,26 @@ class Database {
         });
     }
 
+    /**
+     * Drops all rows in servers and channels that the bot lost access to. Also goes through each slowmode and removes users whose timers have expired.
+     *
+     * @param serverIDs {string[]} all servers the bot is in
+     * @param channelIDs {string[]} all channels the bot has access to
+     * @returns {Promise<number[]>} tuple with number of deleted channels and number of expired users
+     */
     async sanitizeDatabase(serverIDs, channelIDs) {
         // if there are no servers or our servers have no text channels, delete all rows and exit
         if (serverIDs.length === 0 || channelIDs.length === 0) {
-            await this.#ChannelData.destroy({
-                truncate: true
-            });
-            return;
+            return [
+                await this.#ChannelData.destroy({
+                    truncate: true
+                }),
+                0
+            ];
         }
 
         // remove channels from servers we are no longer in and remove channels that were deleted
-        await this.#ChannelData.destroy({
+        const deleted = await this.#ChannelData.destroy({
             where: {
                 [Op.or]: {
                     serverID: {
@@ -185,15 +194,17 @@ class Database {
             }
         });
 
-
         // remove users whose slowmodes have expired
-        // get all of the user arrays and userTime arrays and remove users whose times have now expired
+        // get all the user arrays and userTime arrays and remove users whose times have now expired
+        let expired = 0;
         for (const model of await this.#ChannelData.findAll({attributes: ["id", "length", "users", "userTimes"]})) {
             const users = model.users.slice();
             const userTimes = model.userTimes.slice();
             let changed = false;
             for (let i = 0; i < users.length; i++) {
-                if (Date.now() >= userTimes[i] + model.length) {
+                // model.length measures time in seconds, Date.now and usertimes in ms
+                if (Date.now() >= Number(userTimes[i]) + model.length * 1000) {
+                    expired++;
                     users.splice(i, 1);
                     userTimes.splice(i, 1);
                     model.set("users", users);
@@ -206,10 +217,11 @@ class Database {
                 await model.save();
             }
         }
+        return [deleted, expired];
     }
 
     async shutDown() {
         await this.#sequelize.close();
     }
 }
-module.exports = Database;
+export default Database;

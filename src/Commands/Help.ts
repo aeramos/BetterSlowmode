@@ -16,12 +16,12 @@
  * along with BetterSlowmode.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import Discord = require("discord.js");
-import Command = require("./Command");
+import Discord from "discord.js";
 import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
 
+import Command from "./Command.js";
 // @ts-ignore
-import ChannelData = require("../ChannelData");
+import ChannelData from "../ChannelData.js";
 
 class Help extends Command {
     private readonly commands: Command[]
@@ -112,4 +112,4 @@ class Help extends Command {
         return output;
     }
 }
-export = Help;
+export default Help;

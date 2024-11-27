@@ -1,10 +1,11 @@
 {
     "compilerOptions": {
         "rootDir": "src",
-        "module": "commonjs",
+        "module": "es6",
         "target": "es6",
         "moduleResolution": "Node",
         "strict": true,
+        "esModuleInterop": true
     },
     "include": ["src/Commands/*"]
 }

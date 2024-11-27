@@ -16,11 +16,11 @@
  * along with BetterSlowmode.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import Discord = require("discord.js");
-import Command = require("./Command");
+import Discord from "discord.js";
 
+import Command from "./Command.js";
 // @ts-ignore
-import ChannelData = require("../ChannelData");
+import ChannelData from "../ChannelData.js";
 
 class Info extends Command {
     private readonly supportCode: string;
@@ -74,4 +74,4 @@ class Info extends Command {
         });
     }
 }
-export = Info;
+export default Info;

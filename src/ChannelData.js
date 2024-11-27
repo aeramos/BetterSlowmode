@@ -128,4 +128,4 @@ class ChannelData {
         return this.#type === null;
     }
 }
-module.exports = ChannelData;
+export default ChannelData;

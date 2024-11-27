@@ -16,14 +16,14 @@
  * along with BetterSlowmode.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import Discord = require("discord.js");
-import Command = require("./Command");
+import Discord from "discord.js";
 import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
 
+import Command from "./Command.js";
 // @ts-ignore
-import * as ChannelData from "../ChannelData.js";
+import ChannelData from "../ChannelData.js";
 // @ts-ignore
-import * as Database from "../Database.js";
+import Database from "../Database.js";
 
 class Set extends Command {
     protected static readonly SLOWMODE_TYPE: boolean | null = null;
@@ -433,4 +433,4 @@ class Set extends Command {
         return ids;
     }
 }
-export = Set;
+export default Set;

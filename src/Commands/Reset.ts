@@ -16,14 +16,14 @@
  * along with BetterSlowmode.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import Discord = require("discord.js");
+import Discord from "discord.js";
 import {ApplicationCommandOptionType, ChannelType} from "discord-api-types/v9";
 
+import Command from "./Command.js";
 // @ts-ignore
-import * as ChannelData from "../ChannelData.js";
+import ChannelData from "../ChannelData.js";
 // @ts-ignore
-import * as Database from "../Database.js";
-import Command = require("./Command");
+import Database from "../Database.js";
 
 class Reset extends Command {
     private readonly database: Database;
@@ -215,4 +215,4 @@ class Reset extends Command {
         }
     }
 }
-export = Reset;
+export default Reset;
