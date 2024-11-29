@@ -234,8 +234,16 @@ client.on("messageCreate", async (message) => {
     }
 });
 
-// wrapper around sending messages that handles permissions and supports non-embed fallbacks for messages that use embeds
-function sendMessage(channel, message) {
+
+/**
+ * Wrapper around sending messages with the tag command that handles permissions and includes a fallback mode for when the bot can't send embeds
+ *
+ * @param {Discord.TextChannel} channel the channel to send the message in
+ * @param {Discord.MessageOptions | string} message the message to send. If it contains embeds and the bot lacks permissions,
+ *  it will send the non-embed content (if it exists) and an information message that asks for the permission.
+ * @returns {Promise<Discord.Message>} the sent message
+ */
+async function sendMessage(channel, message) {
     if (channel.guild.me.permissionsIn(channel).has(Discord.Permissions.FLAGS.SEND_MESSAGES)) {
         if (message.embeds) {
             if (channel.guild.me.permissionsIn(channel).has(Discord.Permissions.FLAGS.EMBED_LINKS)) {
@@ -243,7 +251,9 @@ function sendMessage(channel, message) {
                 return channel.send(message);
             } else {
                 return channel.send(message.content +
-                "\n\nThis output usually uses embeds (special formatting), but BetterSlowmode does not have the \"Embed Links\" permission in this channel. Sorry!");
+                    "\n\nThis output usually uses embeds (special formatting), but BetterSlowmode does not have the \"Embed Links\" permission in this channel." +
+                    " Please ask a moderator to grant the \"Embed Links\" permission to enable full functionality.!"
+                );
             }
         } else {
             return channel.send(message);
