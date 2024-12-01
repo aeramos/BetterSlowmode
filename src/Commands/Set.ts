@@ -29,7 +29,7 @@ class Set extends Command {
     protected static readonly SLOWMODE_TYPE: boolean | null = null;
     protected static readonly SLASH_COMMAND_OPTIONS: object[] = [
         {
-            type: ApplicationCommandOptionTypes.NUMBER,
+            type: ApplicationCommandOptionTypes.INTEGER,
             name: "days",
             description: "The number of days to add to the slowmode length.",
             required: false,
@@ -37,7 +37,7 @@ class Set extends Command {
             max_value: 364
         },
         {
-            type: ApplicationCommandOptionTypes.NUMBER,
+            type: ApplicationCommandOptionTypes.INTEGER,
             name: "hours",
             description: "The number of hours to add to the slowmode length.",
             required: false,
@@ -45,7 +45,7 @@ class Set extends Command {
             max_value: 23
         },
         {
-            type: ApplicationCommandOptionTypes.NUMBER,
+            type: ApplicationCommandOptionTypes.INTEGER,
             name: "minutes",
             description: "The number of minutes to add to the slowmode length.",
             required: false,
@@ -53,7 +53,7 @@ class Set extends Command {
             max_value: 59
         },
         {
-            type: ApplicationCommandOptionTypes.NUMBER,
+            type: ApplicationCommandOptionTypes.INTEGER,
             name: "seconds",
             description: "The number of seconds to add to the slowmode length.",
             required: false,
@@ -159,9 +159,21 @@ class Set extends Command {
                 try {
                     // if properly formatted "15m", will remove the m and leave 15
                     addedTime = Number(parameter.slice(0, -1));
+                    if (!Number.isInteger(addedTime)) {
+                        return {
+                           content: `${message.author}, length must not be specified with any decimals.`
+                        }
+                    }
+                    // this shouldn't happen due to input validation above (all types of dashes are considered the start of an option, like -include)
+                    // still checking in case another symbol to make a number negative is introduced
+                    if (addedTime < 0) {
+                        return {
+                            content: `${message.author}, length must not be specified with any negative numbers.`
+                        }
+                    }
                 } catch (e) { // example: 15min. must be 15m
                     return {
-                        content: `${message.author}, length must be in format "15m 30s" for example. For more info enter: <@${this.id}> \`help ${this.getName()}\``
+                        content: `${message.author}, length must be specified in the format "15m 30s" for example. For help enter: <@${this.id}> \`help ${this.getName()}\`.`
                     }
                 }
 
@@ -180,7 +192,7 @@ class Set extends Command {
                         break;
                     default:
                         return {
-                            content: `${message.author}, length must be in format "15m 30s" for example. For more info enter: <@${this.id}> \`help ${this.getName()}\``
+                            content: `${message.author}, length must be specified in the format "15m 30s" for example. For help enter: <@${this.id}> \`help ${this.getName()}\`.`
                         }
                 }
                 length += addedTime;
@@ -194,7 +206,7 @@ class Set extends Command {
                 // test to see if it contains channel or user tags, any number of them (at least 1), and nothing more
                 if (!new RegExp(/^(<(@|@!|@&)\d{1,20}>)+$/).test(parameter)) {
                     return {
-                        content: `${message.author}, invalid tags. Example: <@${this.id}> \`set 1h -exclude\` ${message.author}`
+                        content: `${message.author}, invalid tags. Example: <@${this.id}> \`set 1h -exclude\` ${message.author}.`
                     }
                 }
                 providedTags = true;
@@ -232,7 +244,7 @@ class Set extends Command {
         }
 
         // limit slowmode length to 1 year
-        if (length === 0 || length > 31536000) {
+        if (length < 1 || length > 31536000) {
             return {
                 content: `${message.author}, length must be at least 1 second and no longer than 1 year.`
             }
@@ -293,8 +305,8 @@ class Set extends Command {
         }
 
         // sum days/hours/minutes/seconds to get length in seconds
-        const length = ((((((interaction.options.getNumber("days", false) || 0) * 24) + (interaction.options.getNumber("hours", false) || 0)) * 60) +
-            (interaction.options.getNumber("minutes", false) || 0)) * 60) + (interaction.options.getNumber("seconds", false) || 0);
+        const length = ((((((interaction.options.getInteger("days", false) || 0) * 24) + (interaction.options.getInteger("hours", false) || 0)) * 60) +
+            (interaction.options.getInteger("minutes", false) || 0)) * 60) + (interaction.options.getInteger("seconds", false) || 0);
 
         if (length === 0) {
             return interaction.reply({

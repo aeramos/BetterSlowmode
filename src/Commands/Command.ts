@@ -41,16 +41,17 @@ abstract class Command {
     /**
      * Converts a time given in seconds to years, days, hours, minutes, and seconds in a user-friendly format.
      *
-     * @param totalSeconds
-     * @returns a string in the form "1 hour, 23 minutes, 20 seconds"
+     * @param totalSeconds A positive integer amount of seconds.
+     *
+     * @returns A string in the form: "1 hour, 23 minutes, 20 seconds".
      * @protected
      */
-    protected static getPrettyTime(totalSeconds : number) : string {
+    protected static getPrettyTime(totalSeconds: number): string {
         const years = Math.floor(totalSeconds / 31536000);
         const days = Math.floor(totalSeconds % 31536000 / 86400);
         const hours = Math.floor(totalSeconds % 86400 / 3600);
         const minutes = Math.floor(totalSeconds % 3600 / 60);
-        const seconds = Math.floor(totalSeconds % 60);
+        const seconds = totalSeconds % 60;
 
         let string = seconds > 0 ? `${seconds} second` + (seconds > 1 ? "s " : " ") : "";
         string = (minutes > 0 ? `${minutes} minute` + (minutes > 1 ? "s" : "") + (string.length > 0 ? ", " : " ") : "") + string;
