@@ -236,12 +236,12 @@ client.on("messageCreate", async (message) => {
 
 
 /**
- * Wrapper around sending messages with the tag command that handles permissions and includes a fallback mode for when the bot can't send embeds
+ * Wrapper around sending messages with the tag command that handles permissions and includes a fallback mode for when the bot can't send embeds.
  *
- * @param {Discord.TextChannel} channel the channel to send the message in
- * @param {Discord.MessageOptions | string} message the message to send. If it contains embeds and the bot lacks permissions,
- *  it will send the non-embed content (if it exists) and an information message that asks for the permission.
- * @returns {Promise<Discord.Message>} the sent message
+ * @param {Discord.TextChannel} channel The channel to send the message in.
+ * @param {Discord.MessageOptions | string} message The message to send. If it contains embeds and the bot lacks permissions,
+ * it will send the non-embed content (if it exists) and an information message that asks for the permission.
+ * @returns {Promise<Discord.Message>} The sent message.
  */
 async function sendMessage(channel, message) {
     if (channel.guild.me.permissionsIn(channel).has(Discord.Permissions.FLAGS.SEND_MESSAGES)) {
