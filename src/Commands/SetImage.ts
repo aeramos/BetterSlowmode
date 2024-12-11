@@ -1,6 +1,6 @@
 /*
  * This file is part of BetterSlowmode.
- * Copyright (C) 2020, 2021, 2022 Alejandro Ramos
+ * Copyright (C) 2020, 2021, 2022, 2024 Alejandro Ramos
  *
  * BetterSlowmode is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -19,7 +19,22 @@
 import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
 import Set from "./Set.js";
 
+/**
+ * The Set-Image command handles the creation of image-only slowmodes.
+ *
+ * An image-only slowmode only applies to messages that contain attachments. Messages that only contain text or embeds
+ * will not be deleted. Messages with multiple images or non-image attachments are not treated differently: they will
+ * still be deleted if they are sent within the cooldown interval.
+ *
+ * @see SetText
+ */
 class SetImage extends Set {
+    /**
+     * The type of slowmode this command creates. False indicates an image-only slowmode.
+     *
+     * @see SetText
+     * @see Database
+     */
     protected static readonly SLOWMODE_TYPE: boolean | null = false;
 
     public getName(): string {

@@ -25,8 +25,41 @@ import ChannelData from "../ChannelData.js";
 // @ts-ignore
 import Database from "../Database.js";
 
+/**
+ * The Set command handles the creation of new slowmodes.
+ *
+ * By default, this bot's slowmodes follow the same permissions and rules as a default slowmode: users may send only one
+ * message within a given interval. This bot allows the interval to be any length between 1 second and 1 year. Users who
+ * attempt to send a message during this time will be prevented, or in the case of this bot (due to API limitations),
+ * their message will be deleted immediately after it is sent. These slowmodes apply to users who lack the "Manage
+ * Messages", "Manage Channels", or "Administrator" permissions in the affected channel.
+ *
+ * This bot also features additional configuration options that the default Discord slowmode lacks. The `include` option
+ * allows the creation of slowmodes that apply to users or roles that would normally be immune because of the Discord
+ * permission they have. The `exclude` option has the opposite effect. If a user is included at one level, and excluded
+ * in another, their user-level exception will take precedence. If a user is both included and excluded at the role
+ * level, the status of their higher-ranked role in the Discord UI will take precedence.
+ *
+ * @see SetText
+ * @see SetImage
+ */
 class Set extends Command {
+    /**
+     * The type of slowmode this command creates. Null indicates a normal slowmode.
+     *
+     * @see SetText
+     * @see SetImage
+     * @see Database
+     */
     protected static readonly SLOWMODE_TYPE: boolean | null = null;
+
+    /**
+     * Slash command information to send through the REST API during initial registration on bot startup.
+     *
+     * @see https://v13.discordjs.guide/interactions/slash-commands.html Discord.js documentation
+     * @see https://discord.com/developers/docs/interactions/application-commands Discord Application Commands documentation
+     * @protected
+     */
     protected static readonly SLASH_COMMAND_OPTIONS: object[] = [
         {
             type: ApplicationCommandOptionTypes.INTEGER,
@@ -353,9 +386,9 @@ class Set extends Command {
      * @param userExclusions Set of members to exclude from the slowmode. They must not already be included.
      * @param roleInclusions Set of roles to include in the slowmode. The author's highest role must be higher than them.
      * @param roleExclusions Set of roles to exclude from the slowmode. They must not already be included.
-     * @private
      *
      * @returns A message to send to the user stating if the slowmode was successfully set or not.
+     * @private
      */
     private async command(author: Discord.GuildMember, channel: Discord.TextChannel, guild: Discord.Guild, channelData: ChannelData | null, length: number,
                           userInclusions: globalThis.Set<Discord.GuildMember>, userExclusions: globalThis.Set<Discord.GuildMember>,
@@ -373,7 +406,7 @@ class Set extends Command {
         }
 
         if (this.subjectToSlowmode(author, channel, channelData)) {
-            return `${author}, you cannot remove the slowmode on <#${channel.id}> because you are subject to it.`;
+            return `${author}, you cannot replace the slowmode on <#${channel.id}> because you are subject to it.`;
         }
 
         // set the slowmode in the database and tell the Discord user it's done
@@ -383,7 +416,18 @@ class Set extends Command {
     }
 
     /**
-     *  @returns an error message if the given member does not have the right to add the given users or roles or if they don't exist.
+     * Checks that the given slowmode exceptions are allowed.
+     *
+     * @param author The user making the request.
+     * @param userInclusions The users to include. None of them can be the owner or the author, and their highest roles
+     * must be lower than the author's.
+     * @param userExclusions The users to exclude. None of them can be included already.
+     * @param roleInclusions The roles to include. They must be ordered lower than the author's highest role.
+     * @param roleExclusions The roles to exclude. None of them can be included already.
+     *
+     * @returns An error message if the author is not powerful enough to include the users/roles or if they contradict
+     * each other.
+     * @private
      */
     private static async checkExceptions(author: Discord.GuildMember, userInclusions: Discord.GuildMember[], userExclusions: Discord.GuildMember[], roleInclusions: Discord.Role[], roleExclusions: Discord.Role[]): Promise<string> {
         const guild = author.guild;
@@ -410,6 +454,11 @@ class Set extends Command {
         return "";
     }
 
+    /**
+     * @returns True if member1 is the owner or if their highest role is ordered above member2's. Returns false if
+     * member1 and member2 are the same.
+     * @private
+     */
     private static isMorePowerfulThanMember(guild: Discord.Guild, member1: Discord.GuildMember, member2: Discord.GuildMember): boolean {
         // a member is not more powerful than himself
         if (member1.id === member2.id) {
@@ -427,6 +476,10 @@ class Set extends Command {
         return member1.roles.highest.comparePositionTo(member2.roles.highest) > 0;
     }
 
+    /**
+     * @returns True if the user's highest role is higher than the given role.
+     * @private
+     */
     private static isMorePowerfulThanRole(guild: Discord.Guild, member: Discord.GuildMember, role: Discord.Role): boolean {
         if (member.id === guild.ownerId) {
             return true;
@@ -435,7 +488,7 @@ class Set extends Command {
     }
 
     /**
-     * @returns array of the IDs of the given members or roles
+     * @returns An array of the IDs of the given member or role objects.
      */
     private static getIDs(objects: Discord.GuildMember[] | Discord.Role[]): Discord.Snowflake[] {
         let ids = [];

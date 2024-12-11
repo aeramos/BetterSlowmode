@@ -192,7 +192,7 @@ client.on("messageCreate", async (message) => {
                 channelData.addUser(authorID, messageTimestamp);
                 await database.setChannel(channelData);
             } else {
-                if (!message.guild.me.permissionsIn(message.channel).has(Discord.Permissions.FLAGS.MANAGE_MESSAGES)) {
+                if (!message.guild.members.me.permissionsIn(message.channel).has(Discord.Permissions.FLAGS.MANAGE_MESSAGES)) {
                     await sendMessage(message.channel, "Error: Could not delete message because BetterSlowmode does not have the \"Manage Messages\" permission in this channel." +
                         "\nBetterSlowmode needs the \"Manage Messages\" and \"Send Messages\" permissions to function." +
                         "\nIf you want to remove the slowmode, use: `@BetterSlowmode remove`. Use `@BetterSlowmode help` for help.");
@@ -244,9 +244,9 @@ client.on("messageCreate", async (message) => {
  * @returns {Promise<Discord.Message>} The sent message.
  */
 async function sendMessage(channel, message) {
-    if (channel.guild.me.permissionsIn(channel).has(Discord.Permissions.FLAGS.SEND_MESSAGES)) {
+    if (channel.guild.members.me.permissionsIn(channel).has(Discord.Permissions.FLAGS.SEND_MESSAGES)) {
         if (message.embeds) {
-            if (channel.guild.me.permissionsIn(channel).has(Discord.Permissions.FLAGS.EMBED_LINKS)) {
+            if (channel.guild.members.me.permissionsIn(channel).has(Discord.Permissions.FLAGS.EMBED_LINKS)) {
                 message.content = undefined;
                 return channel.send(message);
             } else {

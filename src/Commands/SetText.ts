@@ -1,6 +1,6 @@
 /*
  * This file is part of BetterSlowmode.
- * Copyright (C) 2020, 2021, 2022 Alejandro Ramos
+ * Copyright (C) 2020, 2021, 2022, 2024 Alejandro Ramos
  *
  * BetterSlowmode is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -19,7 +19,22 @@
 import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
 import Set from "./Set.js";
 
+/**
+ * The Set-Text command handles the creation of text-only slowmodes.
+ *
+ * A text-only slowmode only applies to messages that contain text. Messages that only contain attachments will not be
+ * deleted. Messages without text that are later edited to include text will not be deleted, as edits are not tracked by
+ * the bot.
+ *
+ * @see SetImage
+ */
 class SetText extends Set {
+    /**
+     * The type of slowmode this command creates. True indicates a text-only slowmode.
+     *
+     * @see SetImage
+     * @see Database
+     */
     protected static readonly SLOWMODE_TYPE: boolean | null = true;
 
     public getName(): string {

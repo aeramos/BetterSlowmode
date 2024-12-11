@@ -111,7 +111,7 @@ abstract class Command {
      */
     protected static getMissingPermissions(author: Discord.GuildMember, channel: Discord.GuildChannel, userPermissions: Map<Discord.PermissionResolvable, string>, botPermissions: Map<Discord.PermissionResolvable, string>): string {
         let output = "";
-        const bot = <Discord.GuildMember>author.guild.me;
+        const bot = <Discord.GuildMember>author.guild.members.me;
 
         let missingPermissions = this.getMissingMemberPermissions(author, channel, userPermissions);
         if (missingPermissions !== "") {
