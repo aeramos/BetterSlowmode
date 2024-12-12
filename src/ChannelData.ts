@@ -103,22 +103,6 @@ class ChannelData {
         return this.userTimes;
     }
 
-    public excludesUser(id: Discord.Snowflake): boolean {
-        return this.userExcludes.includes(id);
-    }
-
-    public includesUser(id: Discord.Snowflake): boolean {
-        return this.userIncludes.includes(id);
-    }
-
-    public excludesRole(id: Discord.Snowflake): boolean {
-        return this.roleExcludes.includes(id);
-    }
-
-    public includesRole(id: Discord.Snowflake): boolean {
-        return this.roleIncludes.includes(id);
-    }
-
     /**
      * @returns The user's last message timestamp, or -1 if there is none.
      */
@@ -172,6 +156,71 @@ class ChannelData {
      */
     public isBoth(): boolean {
         return this.type === null;
+    }
+
+    /**
+     * Determines if a slowmode applies to a user.
+     *
+     * This is done though the following tests, in order:
+     *
+     * 1. The owner of the server is never subject to a slowmode.
+     * 2. If the user is specifically included, they are subject to the slowmode.
+     * 3. If the user is specifically excluded, they are not subject to the slowmode.
+     * 4. If one of a user's roles are included, and none of theirs are excluded, they are subject to the slowmode.
+     * 5. If one of a user's roles are excluded, and none of theirs are included, they are not subject to the slowmode.
+     * 6. If a user is a member of both an included role and an excluded role, the roles' positions in the Discord UI
+     * are compared. The status of their highest-ranked role that is included or excluded will determine if they are
+     * subject to the slowmode or not.
+     * 7. If none of the previous tests apply to the user, the default Discord slowmode settings apply: if the user has
+     * the Manage Messages permission, the Manage Channels permission, or the Administrator permission in the channel,
+     * they are not subject to the slowmode.
+     *
+     * @returns True if the slowmode applies to the given member.
+     */
+    public subjectToSlowmode(member: Discord.GuildMember, channel: Discord.TextChannel): boolean {
+        // note that the Set command prevents the owner from being included, but the server owner can change
+        if (member.guild.ownerId === member.id) return false;
+
+        if (this.userIncludes.includes(member.id)) return true;
+        if (this.userExcludes.includes(member.id)) return false;
+
+        // of the member's roles, get the highest ranked ones that are either included or excluded
+        let highestIncludedRole;
+        let highestExcludedRole;
+        for (const roleMap of member.roles.cache) {
+            const role: Discord.Role = roleMap[1];
+            if (this.roleIncludes.includes(role.id)) {
+                if (highestIncludedRole === undefined || highestIncludedRole.comparePositionTo(role) < 0) {
+                    highestIncludedRole = role;
+                }
+            }
+            if (this.roleExcludes.includes(role.id)) {
+                if (highestExcludedRole === undefined || highestExcludedRole.comparePositionTo(role) < 0) {
+                    highestExcludedRole = role;
+                }
+            }
+        }
+
+        // process the role exceptions
+        // note that the Set command prevents a role from being both included and excluded
+        if (highestIncludedRole === undefined) {
+            if (highestExcludedRole === undefined) {
+                // if the member has no roles included or excluded, just check Discord channel permissions
+                const permissions = member.permissionsIn(channel);
+                return !(permissions.has(Discord.Permissions.FLAGS.MANAGE_MESSAGES) || permissions.has(Discord.Permissions.FLAGS.MANAGE_CHANNELS) || permissions.has(Discord.Permissions.FLAGS.ADMINISTRATOR));
+            } else {
+                // if the member is excluded and not included
+                return false;
+            }
+        } else {
+            if (highestExcludedRole === undefined) {
+                // if the member is included and not excluded
+                return true;
+            } else {
+                // if the member is included and excluded, follow the status of the higher ranked role
+                return highestIncludedRole.comparePositionTo(highestExcludedRole) > 0;
+            }
+        }
     }
 }
 export default ChannelData;

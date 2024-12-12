@@ -59,11 +59,11 @@ client.on("ready", async () => {
     database = new Database(config["database-url"]);
     commands = [
         new Info(client.user.id, config["support-code"]),
-        new Remove(client.user.id, database, subjectToSlowmode),
-        new Reset(client.user.id, database, subjectToSlowmode),
-        new Set(client.user.id, database, subjectToSlowmode),
-        new SetImage(client.user.id, database, subjectToSlowmode),
-        new SetText(client.user.id, database, subjectToSlowmode),
+        new Remove(client.user.id, database),
+        new Reset(client.user.id, database),
+        new Set(client.user.id, database),
+        new SetImage(client.user.id, database),
+        new SetText(client.user.id, database),
         new Status(client.user.id, database)
     ];
     helpCommand = new Help(client.user.id, commands);
@@ -182,7 +182,7 @@ client.on("messageCreate", async (message) => {
     const channelID = channel.id;
     const channelData = await database.getChannel(channelID);
 
-    if (subjectToSlowmode(message.member, channel, channelData)) {
+    if (channelData !== null && channelData.subjectToSlowmode(message.member, channel)) {
         // if both text and images, check slowmode. if just images + it has an image, check slowmode. if text + it has text, check slowmode.
         if (channelData.isBoth() || (channelData.isImage() && message.attachments.size > 0) || (channelData.isText() && message.content.length > 0)) {
             const messageTimestamp = message.createdTimestamp;
@@ -257,50 +257,6 @@ async function sendMessage(channel, message) {
             }
         } else {
             return channel.send(message);
-        }
-    }
-}
-
-/**
- * @param {Discord.GuildMember} member
- * @param {Discord.TextChannel} channel
- * @param {ChannelData} channelData
- * @returns {boolean} true if there is a slowmode in the channel and it applies to the given member
- */
-function subjectToSlowmode(member, channel, channelData) {
-    if (!channelData) return false;
-    if (member.guild.ownerId === member.id) return false;
-    if (channelData.includesUser(member.id)) return true;
-    if (channelData.excludesUser(member.id)) return false;
-
-    let highestIncludedRole;
-    let highestExcludedRole;
-    for (let role of member.roles.cache) {
-        role = role[1];
-        if (channelData.includesRole(role.id)) {
-            if (highestIncludedRole === undefined || highestIncludedRole.comparePositionTo(role) < 0) {
-                highestIncludedRole = role;
-            }
-        }
-        if (channelData.excludesRole(role.id)) {
-            if (highestExcludedRole === undefined || highestExcludedRole.comparePositionTo(role) < 0) {
-                highestExcludedRole = role;
-            }
-        }
-    }
-    if (highestIncludedRole === undefined) {
-        if (highestExcludedRole === undefined) {
-            // only need to check the permissions in the slowed channel
-            const permissions = member.permissionsIn(channel);
-            return !(permissions.has(Discord.Permissions.FLAGS.MANAGE_MESSAGES) || permissions.has(Discord.Permissions.FLAGS.MANAGE_CHANNELS) || permissions.has(Discord.Permissions.FLAGS.ADMINISTRATOR));
-        } else {
-            return false;
-        }
-    } else {
-        if (highestExcludedRole === undefined) {
-            return true;
-        } else {
-            return highestIncludedRole.comparePositionTo(highestExcludedRole) > 0;
         }
     }
 }

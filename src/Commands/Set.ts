@@ -106,12 +106,10 @@ class Set extends Command {
     ];
 
     private readonly database: Database;
-    private readonly subjectToSlowmode: CallableFunction;
 
-    public constructor(id: Discord.Snowflake, database: Database, subjectToSlowmode: CallableFunction) {
+    public constructor(id: Discord.Snowflake, database: Database) {
         super(id);
         this.database = database;
-        this.subjectToSlowmode = subjectToSlowmode;
     }
 
     public getName(): string {
@@ -403,7 +401,7 @@ class Set extends Command {
             return invalidExceptions;
         }
 
-        if (this.subjectToSlowmode(author, channel, channelData)) {
+        if (channelData !== null && channelData.subjectToSlowmode(author, channel)) {
             return `${author}, you cannot replace the slowmode on <#${channel.id}> because you are subject to it.`;
         }
 

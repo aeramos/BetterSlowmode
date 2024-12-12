@@ -25,12 +25,10 @@ import Database from "../Database.js";
 
 class Remove extends Command {
     private readonly database: Database;
-    private readonly subjectToSlowmode: CallableFunction;
 
-    public constructor(id: Discord.Snowflake, database: Database, subjectToSlowmode: CallableFunction) {
+    public constructor(id: Discord.Snowflake, database: Database) {
         super(id);
         this.database = database;
-        this.subjectToSlowmode = subjectToSlowmode;
     }
 
     public getName(): string {
@@ -131,7 +129,7 @@ class Remove extends Command {
         if (missingPermissions) {
             return missingPermissions;
         }
-        if (this.subjectToSlowmode(author, channel, channelData)) {
+        if (channelData.subjectToSlowmode(author, <Discord.TextChannel>channel)) {
             return `${author}, you cannot remove the slowmode on ${channel} because you are subject to it.`;
         }
 
