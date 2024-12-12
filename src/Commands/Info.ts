@@ -19,7 +19,6 @@
 import Discord from "discord.js";
 
 import Command from "./Command.js";
-// @ts-ignore
 import ChannelData from "../ChannelData.js";
 
 class Info extends Command {

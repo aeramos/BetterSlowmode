@@ -20,9 +20,7 @@ import Discord from "discord.js";
 import {ApplicationCommandOptionType, ChannelType} from "discord-api-types/v9";
 
 import Command from "./Command.js";
-// @ts-ignore
 import ChannelData from "../ChannelData.js";
-// @ts-ignore
 import Database from "../Database.js";
 
 class Reset extends Command {
@@ -72,13 +70,14 @@ class Reset extends Command {
         let userTags: Set<Discord.Snowflake> = new Set<Discord.Snowflake>();
 
         if (parameters.length > 0) {
-            // first parameter must match: optional channel tag with optional user tags, in that order
+            // first parameter must match: optional channel tag with optional user tags, in that order (reset [channel] [user])
             if (!new RegExp(/^(<#\d{1,20}>)?(<(@|@!)\d{1,20}>)*$/).test(parameters[0])) {
                 return {
                     content: `${message.author}, your tags are invalid. Example: <@${this.id}> \`${this.getName()}\` ${message.channel} ${message.member}`
                 }
             }
 
+            // get the tagged channel if it exists
             // will match zero or one time. inefficient to search the full string, but cleaner than a search for the regex then a search for the closing bracket ">"
             for (const channelTag of (parameters[0].match(/<#\d{1,20}>/g) || [])) {
                 const tempChannel = await this.getChannel(channelTag, <Discord.Guild>message.guild, message.channelId, message.author.id, true);
@@ -163,7 +162,6 @@ class Reset extends Command {
      *  @param users Reset the slowmodes of each user listed
      *
      *  @returns A message to send to the user stating if the reset was successful or not.
-     *
      *  @private
      */
     private async command(channel: Discord.GuildChannel, channelData: ChannelData | null, author: Discord.GuildMember, users: Set<Discord.User>): Promise<string> {
@@ -204,12 +202,12 @@ class Reset extends Command {
         // push the new user lists to the server. don't waste the query if there's nothing to change
         if (resettingChannel) {
             if (originalUsers.length > 0) {
-                await this.database.setChannel(new ChannelData(channelData.getID(), channelData.getServerID(), channelData.getLength(), channelData.getType(), channelData.getUserExcludes(), channelData.getUserIncludes(), channelData.getRoleExcludes(), channelData.getRoleIncludes(), [], []));
+                await this.database.setChannel(new ChannelData(channelData.getID(), channelData.getServerID(), channelData.getLength(), channelData.getType(), channelData.getUserExcludes(), channelData.getUserIncludes(), channelData.getRoleExcludes(), channelData.getRoleIncludes(), [], [], channelData._model));
             }
             return `The slowmode in ${channel} has been reset!`;
         } else {
             if (newUsers.length !== originalUsers.length) {
-                await this.database.setChannel(new ChannelData(channelData.getID(), channelData.getServerID(), channelData.getLength(), channelData.getType(), channelData.getUserExcludes(), channelData.getUserIncludes(), channelData.getRoleExcludes(), channelData.getRoleIncludes(), newUsers, newUserTimes));
+                await this.database.setChannel(new ChannelData(channelData.getID(), channelData.getServerID(), channelData.getLength(), channelData.getType(), channelData.getUserExcludes(), channelData.getUserIncludes(), channelData.getRoleExcludes(), channelData.getRoleIncludes(), newUsers, newUserTimes, channelData._model));
             }
             return `The slowmode in ${channel} has been reset for the specified users.`;
         }

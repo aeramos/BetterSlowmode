@@ -18,7 +18,6 @@
 
 import Discord from "discord.js";
 
-// @ts-ignore
 import ChannelData from "../ChannelData.js";
 
 /**

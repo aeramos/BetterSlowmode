@@ -20,9 +20,7 @@ import Discord from "discord.js";
 import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
 
 import Command from "./Command.js";
-// @ts-ignore
 import ChannelData from "../ChannelData.js";
-// @ts-ignore
 import Database from "../Database.js";
 
 /**
@@ -411,7 +409,7 @@ class Set extends Command {
 
         // set the slowmode in the database and tell the Discord user it's done
         const SLOWMODE_TYPE: boolean | null = (<typeof Set>this.constructor).SLOWMODE_TYPE;
-        await this.database.setChannel(new ChannelData(channel.id, guild.id, length, SLOWMODE_TYPE, Set.getIDs(Array.from(userExclusions.values())), Set.getIDs(Array.from(userInclusions.values())), Set.getIDs(Array.from(roleExclusions.values())), Set.getIDs(Array.from(roleInclusions.values())), [], []));
+        await this.database.setChannel(new ChannelData(channel.id, guild.id, length, SLOWMODE_TYPE, Set.getIDs(Array.from(userExclusions.values())), Set.getIDs(Array.from(userInclusions.values())), Set.getIDs(Array.from(roleExclusions.values())), Set.getIDs(Array.from(roleInclusions.values())), [], [], channelData?._model));
         return Command.getPrettyTime(length) + (SLOWMODE_TYPE === true ? "text" : SLOWMODE_TYPE === false ? "image" : "text and image") + " slowmode has been set!" + await Command.getSlowmodeSubjects(Array.from(userInclusions.values()), Array.from(userExclusions.values()), Array.from(roleInclusions.values()), Array.from(roleExclusions.values()));
     }
 

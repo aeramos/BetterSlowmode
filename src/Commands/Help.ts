@@ -20,7 +20,6 @@ import Discord from "discord.js";
 import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
 
 import Command from "./Command.js";
-// @ts-ignore
 import ChannelData from "../ChannelData.js";
 
 class Help extends Command {

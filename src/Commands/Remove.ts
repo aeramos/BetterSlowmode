@@ -20,9 +20,7 @@ import Discord from "discord.js";
 import { ApplicationCommandOptionType, ChannelType } from "discord-api-types/v9";
 
 import Command from "./Command.js";
-// @ts-ignore
 import ChannelData from "../ChannelData.js";
-// @ts-ignore
 import Database from "../Database.js";
 
 class Remove extends Command {

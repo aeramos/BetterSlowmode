@@ -7,5 +7,5 @@
         "strict": true,
         "esModuleInterop": true
     },
-    "include": ["src/Commands/*"]
+    "include": ["src/Commands/*", "src/*.ts"],
 }
