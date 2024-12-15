@@ -139,13 +139,13 @@ abstract class Command {
      * @returns A string listing the includes and excludes of the slowmode, including the default permission-based inclusions.
      * @protected
      */
-    protected static async getSlowmodeSubjects(userIncludes: Discord.GuildMember[], userExcludes: Discord.GuildMember[], roleIncludes: Discord.Role[], roleExcludes: Discord.Role[]): Promise<string> {
-        let includes = roleIncludes.length === 0 ? "" : " It specially includes: " + (await Command.getDiscordRoleTags(roleIncludes)).join(", ");
-        includes +=    userIncludes.length === 0 ? "" : (includes === "" ? " It specially includes: " : ", ") + (await Command.getDiscordUserTags(userIncludes)).join(", ");
+    protected static getSlowmodeSubjects(userIncludes: Discord.GuildMember[], userExcludes: Discord.GuildMember[], roleIncludes: Discord.Role[], roleExcludes: Discord.Role[]): string {
+        let includes = roleIncludes.length === 0 ? "" : " It specially includes: " + Command.getDiscordRoleTags(roleIncludes).join(", ");
+        includes +=    userIncludes.length === 0 ? "" : (includes === "" ? " It specially includes: " : ", ") + Command.getDiscordUserTags(userIncludes).join(", ");
         includes +=    includes === "" ? "" : ".";
 
-        let excludes = roleExcludes.length === 0 ? "" : " It specially excludes: " + (await Command.getDiscordRoleTags(roleExcludes)).join(", ");
-        excludes +=    userExcludes.length === 0 ? "" : (excludes === "" ? " It specially excludes: " : ", ") + (await Command.getDiscordUserTags(userExcludes)).join(", ");
+        let excludes = roleExcludes.length === 0 ? "" : " It specially excludes: " + Command.getDiscordRoleTags(roleExcludes).join(", ");
+        excludes +=    userExcludes.length === 0 ? "" : (excludes === "" ? " It specially excludes: " : ", ") + Command.getDiscordUserTags(userExcludes).join(", ");
         excludes +=    excludes === "" ? "" : ".";
 
         return " It applies to users without the Administrator, Manage Channel, or Manage Messages permissions in the channel." + includes + excludes;
@@ -169,21 +169,22 @@ abstract class Command {
             return `<@${authorID}>, your tag is invalid. Example: <@${this.id}> \`${this.getName()}\` <#${channelID}>`;
         }
 
-        // regex is good, get the channelID from the tag
+        // regex is good, get the channelID from the tag and get the channel
         const givenChannelID = channelTag.slice(2, -1);
-        // regex is good. get the channel
         const channel = await (<Discord.Guild>guild).channels.fetch(givenChannelID, {
             cache: true,
             force: true
         }).catch(() => {
+            // the channel doesn't exist or the bot cant view it
             return null;
         });
 
         // check if the channel exists in this server
         if (channel === null) {
             return `The channel <#${givenChannelID}> does not exist in this server or the bot does not have permission to view it.`;
+        } else {
+            return <Discord.GuildChannel>channel;
         }
-        return <Discord.GuildChannel>channel;
     }
 
     /**
@@ -197,16 +198,27 @@ abstract class Command {
      * @protected
      */
     protected static async getMembers(userIDs: Set<Discord.Snowflake>, guild: Discord.Guild, author: Discord.GuildMember): Promise<Set<Discord.GuildMember> | string> {
-        // throw error if any of the specified users do not exist
-        const userObjects = await guild.members.fetch({
-            user: Array.from(userIDs.values()),
-            withPresences: false,
-            force: true,
-            time: 10000
-        });
+        // fetch takes time even when the request is empty
+        if (!userIDs.size) {
+            return new Set();
+        }
+
+        let userObjects;
+        try {
+            userObjects = await guild.members.fetch({
+                user: Array.from(userIDs.values()),
+                withPresences: false,
+                force: true,
+                time: 10000
+            });
+        } catch (e) {
+            // fetch timed out
+            return "Something went wrong. Please try again.";
+        }
+
         // if there are fewer objects than tags, some of the fetches failed
         if (userObjects.size === userIDs.size) {
-            return new Set<Discord.GuildMember>(userObjects.values());
+            return new Set(userObjects.values());
         } else {
             return `${author}, I could not find the user you mentioned. Are you sure they're in this server?`;
         }
@@ -270,7 +282,7 @@ abstract class Command {
      * @returns An array in the form ["@Jack", "@Jill"].
      * @private
      */
-    private static async getDiscordUserTags(members: Discord.GuildMember[]): Promise<string[]> {
+    private static getDiscordUserTags(members: Discord.GuildMember[]): string[] {
         const array = [];
         for (const member of members) {
             array.push("@" + member.user.tag);
@@ -286,7 +298,7 @@ abstract class Command {
      * @returns An array in the form ["@Admins", "@Moderators"].
      * @private
      */
-    private static async getDiscordRoleTags(roles: Discord.Role[]): Promise<string[]> {
+    private static getDiscordRoleTags(roles: Discord.Role[]): string[] {
         const array = [];
         for (const role of roles) {
             array.push("@" + role.name);

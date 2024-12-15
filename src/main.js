@@ -210,6 +210,7 @@ client.on("messageCreate", async (message) => {
     // check if the message is directed at the bot using the prefix or the tag
     let tagUsed = true;
     let parameters = message.content;
+    // trim the leading % or @BetterSlowmode from the message
     if (message.content.startsWith(prefix)) {
         parameters = parameters.substring(prefix.length)
         tagUsed = false;
@@ -220,17 +221,21 @@ client.on("messageCreate", async (message) => {
     } else {
         return;
     }
+
+    // get the commands sent to the bot, if any
     parameters = parameters.split(" ").filter(e => e !== "");
-    for (const command of commands) {
-        if (command.getName() === parameters[0]) {
-            parameters.shift();
-            await sendMessage(message.channel, await command.tagCommand(channelData, parameters, message))
-            return;
+    if (parameters.length) {
+        for (const command of commands) {
+            if (command.getName() === parameters[0]) {
+                parameters.shift();
+                await sendMessage(message.channel, await command.tagCommand(channelData, parameters, message));
+            }
         }
-    }
-    // don't want to just reply to anyone who uses the prefix. only reply to people who tag the bot specifically
-    if (tagUsed) {
-        await sendMessage(message.channel, await commands[0].tagCommand(channelData, [], message));
+    } else {
+        // if no command was sent, but the bot was tagged, print the help command
+        if (tagUsed) {
+            await sendMessage(message.channel, await commands[0].tagCommand(channelData, [], message));
+        }
     }
 });
 

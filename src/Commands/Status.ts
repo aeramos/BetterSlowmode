@@ -109,7 +109,7 @@ class Status extends Command {
 
         // some members or roles may not be shown if they are not in the server anymore or if they couldn't be fetched before the request timed out
         return "There is a " + length + (channelData.getType() === null ? "" : channelData.getType() ? "text " : "image ") + `slowmode in <#${channelID}>.`
-            + await Command.getSlowmodeSubjects(await Status.getCurrentMembers(guild, channelData.getUserIncludes()), await Status.getCurrentMembers(guild, channelData.getUserExcludes()),
+            + Command.getSlowmodeSubjects(await Status.getCurrentMembers(guild, channelData.getUserIncludes()), await Status.getCurrentMembers(guild, channelData.getUserExcludes()),
             await Status.getCurrentRoles(guild, channelData.getRoleIncludes()), await Status.getCurrentRoles(guild, channelData.getRoleExcludes()));
     }
 
@@ -123,14 +123,22 @@ class Status extends Command {
      * @returns A list of members. If any of the given members no longer exist, they will not be included in the list.
      */
     private static async getCurrentMembers(guild: Discord.Guild, memberIDs: Discord.Snowflake[]): Promise<Discord.GuildMember[]> {
-        return await guild.members.fetch({
+        // fetch takes time even when the request is empty
+        if (!memberIDs.length) {
+            return [];
+        }
+
+        return guild.members.fetch({
             user: memberIDs,
             withPresences: false,
             force: true,
             time: 10000
         }).then((members) => {
             return Array.from(members.values());
-        }).catch(() => []);
+        }).catch(() => {
+            // if fetch times out
+            return [];
+        });
     }
 
     /**
