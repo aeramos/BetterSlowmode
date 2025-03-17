@@ -54,12 +54,14 @@ Also, it would mean a lot to us if you starred our repository on [GitHub](https:
       Channel of Administrator permissions in the channel. The slowmode will apply to members who don't have those
       permissions, according to the rules you set.
 - How do I include a moderator to a slowmode?
-    - You can only specially include people who are less powerful than you. This is determined by the order of the roles
-      in Discord. You can change the order in the server settings or ask the owner to set the slowmode. The owner of the
-      server can include anyone.
+    - Using the `-include` option with `@BetterSlowmode set`, `set-text`, or `set-image`, you can include individual
+      members or roles. However, you can only specially include people who are less powerful than you. This is
+      determined by the order of the roles in Discord. You can change the order in the server settings or ask the owner
+      to set the slowmode. The owner of the server can include anyone.
 - Can I include multiple users and roles to a slowmode? The slash command only lets me choose one.
   - Yes! If you use the `@BetterSlowmode set` command, you can add as many `-include` or `-exclude` options as you want.
-    For example `@BetterSlowmode set -include @john @peter -exclude @james @matthew`.
+    For example `@BetterSlowmode set -include @john @peter -exclude @james @matthew`. Note that if some of a user's
+    roles are included and some of them are excluded, the status of the higher-ranked role takes precedence.
 
 ## Host the bot yourself
 Since BetterSlowmode is open source, you can host the bot yourself for your own servers if you want. 
@@ -92,7 +94,7 @@ npm start
 - Email: [aeramos.work@gmail.com](mailto:aeramos.work@gmail.com)
 
 ## License / Terms of Service
-Copyright (C) 2020, 2021, 2022, 2024 [Alejandro Ramos](https://github.com/aeramos).
+Copyright (C) 2020, 2021, 2022, 2024, 2025 [Alejandro Ramos](https://github.com/aeramos).
 
 BetterSlowmode is free software: you can redistribute it and/or modify it under the terms of the
 [GNU Affero General Public License](./LICENSE.txt) as published by the Free Software Foundation, either version 3 of the

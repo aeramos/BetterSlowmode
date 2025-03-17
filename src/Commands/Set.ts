@@ -1,6 +1,6 @@
 /*
  * This file is part of BetterSlowmode.
- * Copyright (C) 2020, 2021, 2022, 2024 Alejandro Ramos
+ * Copyright (C) 2020, 2021, 2022, 2024, 2025 Alejandro Ramos
  *
  * BetterSlowmode is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -408,7 +408,8 @@ class Set extends Command {
         // set the slowmode in the database and tell the Discord user it's done
         const SLOWMODE_TYPE: boolean | null = (<typeof Set>this.constructor).SLOWMODE_TYPE;
         await this.database.setChannel(new ChannelData(channel.id, guild.id, length, SLOWMODE_TYPE, Set.getIDs(Array.from(userExclusions.values())), Set.getIDs(Array.from(userInclusions.values())), Set.getIDs(Array.from(roleExclusions.values())), Set.getIDs(Array.from(roleInclusions.values())), [], [], channelData?._model));
-        return Command.getPrettyTime(length) + (SLOWMODE_TYPE === true ? "text" : SLOWMODE_TYPE === false ? "image" : "text and image") + " slowmode has been set!" + Command.getSlowmodeSubjects(Array.from(userInclusions.values()), Array.from(userExclusions.values()), Array.from(roleInclusions.values()), Array.from(roleExclusions.values()));
+        return Command.getPrettyTime(length) + (SLOWMODE_TYPE === true ? "text" : SLOWMODE_TYPE === false ? "image" : "text and image") + " slowmode has been set!" + Command.getSlowmodeSubjects(Array.from(userInclusions.values()), Array.from(userExclusions.values()), Array.from(roleInclusions.values()), Array.from(roleExclusions.values())) +
+            `\n\nIf the Discord "Slowmode is enabled" message does not appear, that is normal. BetterSlowmode will still delete messages that violate the slowmode. This allows the bot to provide more features like text-only and image-only slowmodes or slowmodes that can exclude certain users. To test it, ask a non-moderator to send some messages here. For more information, check out the FAQ with: <@${this.id}> \`info\``;
     }
 
     /**
