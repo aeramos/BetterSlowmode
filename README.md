@@ -16,7 +16,7 @@ BetterSlowmode is designed for as much customization as possible. Your slowmodes
 as a year. You can even specially include or exclude certain members or roles to/from the slowmode!
 
 ## How to use
-It's very simple! Try out the commands below to get started. Always remember that you can use `@BetterSlowmode help` 
+It's very simple! Try out the commands below to get started. Always remember that you can use `@BetterSlowmode help`
 for a list of all the commands, and `@BetterSlowmode help [command]` to get help for a specific command.
 ```
 @BetterSlowmode
@@ -32,7 +32,7 @@ for a list of all the commands, and `@BetterSlowmode help [command]` to get help
 ```
 
 BetterSlowmode also supports slash commands! If enabled, slash commands can be used by pressing `/` then selecting or
-typing any BetterSlowmode command, like `/set` or `/status`. 
+typing any BetterSlowmode command, like `/set` or `/status`.
 
 If slash commands are not enabled in your server, you may need to [re-invite BetterSlowmode](https://discord.com/api/oauth2/authorize?client_id=733458562101280788&permissions=26624&scope=bot%20applications.commands)
 to your server. Don't worry, your slowmodes will not be removed because you don't need to kick the bot, just click on
@@ -44,7 +44,7 @@ We are on [top.gg](https://top.gg/bot/733458562101280788). If you like this bot,
 Also, it would mean a lot to us if you starred our repository on [GitHub](https://github.com/aeramos/BetterSlowmode)!
 
 ## Frequently Asked Questions
-- I set a slowmode with the `@BetterSlowmode set` command, but nothing shows up in Discord. It doesn't say "Slowmode 
+- I set a slowmode with the `@BetterSlowmode set` command, but nothing shows up in Discord. It doesn't say "Slowmode
   is enabled" at the bottom of the screen. Is the slowmode enabled?
     - Yes, the slowmode is enabled. It doesn't show the indicator because the bot doesn't use normal Discord Slowmodes,
       it manages the messages by itself. Through this, the bot is able to create slowmodes just for images or slowmodes
@@ -64,7 +64,7 @@ Also, it would mean a lot to us if you starred our repository on [GitHub](https:
     roles are included and some of them are excluded, the status of the higher-ranked role takes precedence.
 
 ## Host the bot yourself
-Since BetterSlowmode is open source, you can host the bot yourself for your own servers if you want. 
+Since BetterSlowmode is open source, you can host the bot yourself for your own servers if you want.
 This is not necessary since we have a public instance of the bot that you can invite [here](https://discord.com/api/oauth2/authorize?client_id=733458562101280788&permissions=26624&scope=bot%20applications.commands).
 If you have a question about our public hosting methods or security, please ask us on the [Support Server](https://discord.com/invite/JUE8keP).
 
@@ -94,7 +94,7 @@ npm start
 - Email: [aeramos.work@gmail.com](mailto:aeramos.work@gmail.com)
 
 ## License / Terms of Service
-Copyright (C) 2020, 2021, 2022, 2024, 2025 [Alejandro Ramos](https://github.com/aeramos).
+Copyright (C) 2020, 2021, 2022, 2024, 2025, 2026 [Alejandro Ramos](https://github.com/aeramos).
 
 BetterSlowmode is free software: you can redistribute it and/or modify it under the terms of the
 [GNU Affero General Public License](./LICENSE.txt) as published by the Free Software Foundation, either version 3 of the
@@ -104,7 +104,7 @@ BetterSlowmode is distributed in the hope that it will be useful, but WITHOUT AN
 warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
 details.
 
-You should have received a copy of the [GNU Affero General Public License](./LICENSE.txt) along with BetterSlowmode. 
+You should have received a copy of the [GNU Affero General Public License](./LICENSE.txt) along with BetterSlowmode.
 If not, see <https://www.gnu.org/licenses/>.
 
 ## Privacy Policy
