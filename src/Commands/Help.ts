@@ -1,6 +1,6 @@
 /*
  * This file is part of BetterSlowmode.
- * Copyright (C) 2020, 2021, 2022, 2024 Alejandro Ramos
+ * Copyright (C) 2020, 2021, 2022, 2024, 2026 Alejandro Ramos
  *
  * BetterSlowmode is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,8 +16,7 @@
  * along with BetterSlowmode.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import Discord from "discord.js";
-import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
+import * as Discord from "discord.js";
 
 import Command from "./Command.js";
 import ChannelData from "../ChannelData.js";
@@ -39,8 +38,8 @@ class Help extends Command {
             "\nLists commands. If given a command, describes usage of command.";
     }
 
-    public getSlashCommand(): object {
-        const commandChoices: object[] = []
+    public getSlashCommand(): Discord.ApplicationCommandData {
+        const commandChoices: Discord.ApplicationCommandOptionChoiceData[] = []
         for (const command of this.commands) {
             commandChoices.push(
                 {
@@ -49,17 +48,18 @@ class Help extends Command {
                 });
         }
         return {
+            name: this.getName(),
             description: "Lists commands. If given a command, describes usage of command.",
             options: [
                 {
-                    type: ApplicationCommandOptionTypes.STRING,
+                    type: Discord.Constants.ApplicationCommandOptionTypes.STRING,
                     name: "command",
                     description: "The command to describe.",
                     required: false,
                     choices: commandChoices
                 }
             ]
-        }
+        };
     }
 
     public async tagCommand(channelData: ChannelData, parameters: string[], message: Discord.Message): Promise<Discord.MessageOptions> {
@@ -87,7 +87,13 @@ class Help extends Command {
         });
     }
 
-    public command(parameter: string | null): string {
+    /**
+     * @param parameter The command the user is requesting information on.
+     *
+     * @returns A user-friendly string listing all the commands or providing usage information on a single command if
+     * specified.
+     */
+    private command(parameter: string | null): string {
         // if a command is given, print help for that command
         if (parameter !== null) {
             for (const command of this.commands) {

@@ -1,6 +1,6 @@
 /*
  * This file is part of BetterSlowmode.
- * Copyright (C) 2020, 2021, 2024 Alejandro Ramos
+ * Copyright (C) 2020, 2021, 2024, 2026 Alejandro Ramos
  *
  * BetterSlowmode is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,8 +16,8 @@
  * along with BetterSlowmode.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import Discord from "discord.js"
-import Sequelize from "sequelize"
+import * as Discord from "discord.js"
+import * as Sequelize from "sequelize"
 
 /**
  * ChannelData is the interface for working with a row in the database that contains slowmode information. The Sequelize
@@ -177,7 +177,7 @@ class ChannelData {
      *
      * @returns True if the slowmode applies to the given member.
      */
-    public subjectToSlowmode(member: Discord.GuildMember, channel: Discord.TextChannel): boolean {
+    public subjectToSlowmode(member: Discord.GuildMember, channel: Discord.GuildTextBasedChannel): boolean {
         // note that the Set command prevents the owner from being included, but the server owner can change
         if (member.guild.ownerId === member.id) return false;
 

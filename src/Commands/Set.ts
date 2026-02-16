@@ -1,6 +1,6 @@
 /*
  * This file is part of BetterSlowmode.
- * Copyright (C) 2020, 2021, 2022, 2024, 2025 Alejandro Ramos
+ * Copyright (C) 2020, 2021, 2022, 2024, 2025, 2026 Alejandro Ramos
  *
  * BetterSlowmode is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,8 +16,7 @@
  * along with BetterSlowmode.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import Discord from "discord.js";
-import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
+import * as Discord from "discord.js";
 
 import Command from "./Command.js";
 import ChannelData from "../ChannelData.js";
@@ -54,13 +53,12 @@ class Set extends Command {
     /**
      * Slash command information to send through the REST API during initial registration on bot startup.
      *
-     * @see https://v13.discordjs.guide/interactions/slash-commands.html Discord.js documentation
-     * @see https://discord.com/developers/docs/interactions/application-commands Discord Application Commands documentation
-     * @protected
+     * @see {@link https://discordjs.guide/legacy/slash-commands/advanced-creation | Discord.js documentation}
+     * @see {@link https://docs.discord.com/developers/interactions/application-commands | Discord Application Commands documentation}
      */
-    protected static readonly SLASH_COMMAND_OPTIONS: object[] = [
+    protected static readonly SLASH_COMMAND_OPTIONS: Discord.ApplicationCommandOptionData[] = [
         {
-            type: ApplicationCommandOptionTypes.INTEGER,
+            type: Discord.Constants.ApplicationCommandOptionTypes.INTEGER,
             name: "days",
             description: "The number of days to add to the slowmode length.",
             required: false,
@@ -68,7 +66,7 @@ class Set extends Command {
             max_value: 364
         },
         {
-            type: ApplicationCommandOptionTypes.INTEGER,
+            type: Discord.Constants.ApplicationCommandOptionTypes.INTEGER,
             name: "hours",
             description: "The number of hours to add to the slowmode length.",
             required: false,
@@ -76,7 +74,7 @@ class Set extends Command {
             max_value: 23
         },
         {
-            type: ApplicationCommandOptionTypes.INTEGER,
+            type: Discord.Constants.ApplicationCommandOptionTypes.INTEGER,
             name: "minutes",
             description: "The number of minutes to add to the slowmode length.",
             required: false,
@@ -84,7 +82,7 @@ class Set extends Command {
             max_value: 59
         },
         {
-            type: ApplicationCommandOptionTypes.INTEGER,
+            type: Discord.Constants.ApplicationCommandOptionTypes.INTEGER,
             name: "seconds",
             description: "The number of seconds to add to the slowmode length.",
             required: false,
@@ -92,13 +90,13 @@ class Set extends Command {
             max_value: 60
         },
         {
-            type: ApplicationCommandOptionTypes.MENTIONABLE,
+            type: Discord.Constants.ApplicationCommandOptionTypes.MENTIONABLE,
             name: "include",
             description: "User or role to include to the slowmode.",
             required: false
         },
         {
-            type: ApplicationCommandOptionTypes.MENTIONABLE,
+            type: Discord.Constants.ApplicationCommandOptionTypes.MENTIONABLE,
             name: "exclude",
             description: "User or role to exclude from the slowmode.",
             required: false
@@ -122,13 +120,12 @@ class Set extends Command {
             "\nLength must be at least 1 second and no more than 1 year.";
     }
 
-    public getSlashCommand(): object {
+    public getSlashCommand(): Discord.ApplicationCommandData {
         return {
-            type: ApplicationCommandOptionTypes.SUB_COMMAND,
-            name: "set",
+            name: this.getName(),
             description: "Sets a slowmode of the given length and optionally includes/excludes users or roles.",
             options: Set.SLASH_COMMAND_OPTIONS
-        }
+        };
     }
 
     public async tagCommand(channelData: ChannelData | null, parameters: string[], message: Discord.Message): Promise<Discord.MessageOptions> {
@@ -384,7 +381,6 @@ class Set extends Command {
      * @param roleExclusions Set of roles to exclude from the slowmode. They must not already be included.
      *
      * @returns A message to send to the user stating if the slowmode was successfully set or not.
-     * @private
      */
     private async command(author: Discord.GuildMember, channel: Discord.TextChannel, guild: Discord.Guild, channelData: ChannelData | null, length: number,
                           userInclusions: globalThis.Set<Discord.GuildMember>, userExclusions: globalThis.Set<Discord.GuildMember>,
@@ -424,7 +420,6 @@ class Set extends Command {
      *
      * @returns An error message if the author is not powerful enough to include the users/roles or if they contradict
      * each other.
-     * @private
      */
     private static checkExceptions(author: Discord.GuildMember, userInclusions: Discord.GuildMember[], userExclusions: Discord.GuildMember[], roleInclusions: Discord.Role[], roleExclusions: Discord.Role[]): string {
         const guild = author.guild;
@@ -454,7 +449,6 @@ class Set extends Command {
     /**
      * @returns True if member1 is the owner or if their highest role is ordered above member2's. Returns false if
      * member1 and member2 are the same.
-     * @private
      */
     private static isMorePowerfulThanMember(guild: Discord.Guild, member1: Discord.GuildMember, member2: Discord.GuildMember): boolean {
         // a member is not more powerful than himself
@@ -475,7 +469,6 @@ class Set extends Command {
 
     /**
      * @returns True if the user's highest role is higher than the given role.
-     * @private
      */
     private static isMorePowerfulThanRole(guild: Discord.Guild, member: Discord.GuildMember, role: Discord.Role): boolean {
         if (member.id === guild.ownerId) {

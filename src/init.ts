@@ -18,8 +18,8 @@
 
 import { ShardingManager } from 'discord.js';
 
-import config from '../config/config.json' with { type: "json" };
+import config from './Config.js';
 
-const manager = new ShardingManager('src/main.js', { token: config["bot-token"] });
+const manager = new ShardingManager('src/main.js', { token: config.botToken });
 console.log("Starting shards")
 manager.spawn();

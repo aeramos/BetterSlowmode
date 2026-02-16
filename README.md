@@ -75,7 +75,7 @@ Please ask a question on the [Support Server](https://discord.com/invite/JUE8keP
 
 ### Installation
 1. Install and configure a PostgreSQL server for the database
-2. Setup `config/config.json` (use `config/config.json.example` as a base)
+2. Set up `config/env.conf` (use `config/env.conf.example` as a base)
 3. `npm install` to install the dependencies
 4. `npm run build` to compile the TypeScript
 

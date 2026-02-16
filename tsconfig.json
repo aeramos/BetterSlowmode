@@ -5,7 +5,7 @@
         "target": "es6",
         "moduleResolution": "Node",
         "strict": true,
-        "esModuleInterop": true
+        "esModuleInterop": false,
     },
     "include": ["src/Commands/*", "src/*.ts"],
 }

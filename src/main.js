@@ -1,6 +1,6 @@
 /*
  * This file is part of BetterSlowmode.
- * Copyright (C) 2020, 2021, 2022, 2024 Alejandro Ramos
+ * Copyright (C) 2020, 2021, 2022, 2024, 2026 Alejandro Ramos
  *
  * BetterSlowmode is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,12 +16,14 @@
  * along with BetterSlowmode.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import Discord from "discord.js";
+import * as Discord from "discord.js";
 import { REST } from "@discordjs/rest";
 import { Routes } from "discord-api-types/rest/v9";
 
-import config from "../config/config.json" with { type: "json" };
+import config from "./Config.js";
+
 import Database from "./Database.js";
+import Command from "./Commands/Command.js";
 import Help from "./Commands/Help.js";
 import Info from "./Commands/Info.js";
 import Remove from "./Commands/Remove.js";
@@ -31,6 +33,9 @@ import SetImage from "./Commands/SetImage.js";
 import SetText from "./Commands/SetText.js";
 import Status from "./Commands/Status.js";
 
+/**
+ * @type {Discord.Client}
+ */
 const client = new Discord.Client({
     intents: [Discord.Intents.FLAGS.GUILDS, Discord.Intents.FLAGS.GUILD_MESSAGES],
     makeCache: Discord.Options.cacheWithLimits(Discord.Options.defaultMakeCacheSettings),
@@ -42,23 +47,45 @@ const client = new Discord.Client({
         }
     }
 });
+
+/**
+ * @type {string | undefined}
+ */
+const prefix = config.prefix;
+
+/**
+ * @type {Database}
+ */
 let database;
+
+/**
+ * @type {boolean} Indicates if the client is ready, the database is connected and cleaned, and the slash commands are registered.
+ */
 let ready = false;
 
-const prefix = config["default-prefix"];
-
+/**
+ * @type {Command[]}
+ */
 let commands;
+
+/**
+ * @type {Help}
+ */
 let helpCommand;
 
-process.on("SIGINT", shutDownBot);
-process.on("SIGTERM", shutDownBot);
-
-client.on("ready", async () => {
+/**
+ * Set up the Commands, connect to and clean the database, and register the slash commands.
+ *
+ * @param {Discord.Client<true>} client
+ *
+ * @returns {Promise<void>}
+ */
+async function onReady(client) {
     console.log(`Logged in as ${client.user.tag}`);
 
-    database = new Database(config["database-url"]);
+    database = new Database(config.databaseURL);
     commands = [
-        new Info(client.user.id, config["support-code"]),
+        new Info(client.user.id, config.supportCode),
         new Remove(client.user.id, database),
         new Reset(client.user.id, database),
         new Set(client.user.id, database),
@@ -67,16 +94,30 @@ client.on("ready", async () => {
         new Status(client.user.id, database)
     ];
     helpCommand = new Help(client.user.id, commands);
-    commands.splice(0, 0, helpCommand);
+    commands.splice(0, 0, helpCommand); // put help first so it appears first when the user lists the commands
 
-    return Promise.all([initializeDB(client, database), initializeSlashCommands(client, config, commands)]).then(() => {
-        client.user.setActivity(prefix + "help for help!")
+    return Promise.all([initializeDB(client, database), initializeSlashCommands(client, config.botToken, commands)]).then(() => {
+        if (prefix) {
+            client.user.setActivity(prefix + "help for help!");
+        } else {
+            client.user.setActivity("/help for help!");
+        }
         ready = true;
         console.log("Bot is ready!");
     });
-});
+}
 
-client.on("interactionCreate", async (interaction) => {
+/**
+ * @param {Discord.Interaction} interaction
+ *
+ * @returns {Promise<void>}
+ */
+async function onInteractionCreate(interaction) {
+    // we only register slash commands, so it should always be a Discord.CommandInteraction
+    if (!interaction.isCommand()) {
+        return;
+    }
+
     if (!interaction.guild) {
         if (interaction.commandName !== "help" && interaction.commandName !== "info") {
             return interaction.reply({
@@ -89,18 +130,19 @@ client.on("interactionCreate", async (interaction) => {
             return command.slashCommand(interaction);
         }
     }
-});
+}
 
 /**
  * Remove expired slowmodes and information about servers/channels we no longer have access to from the database.
  *
  * @param {Discord.Client} client
  * @param {Database} database
+ *
  * @returns {Promise<void>}
  */
 async function initializeDB(client, database) {
     const serverIDs = Array.from(client.guilds.cache.keys());
-    const channelIDs = Array.from(client.channels.cache.filter(channel => channel.type === "GUILD_TEXT").keys());
+    const channelIDs = Array.from(client.channels.cache.filter(channel => channel.isText()).keys());
 
     await database.initialize();
     const [deleted, expired] = await database.sanitizeDatabase(serverIDs, channelIDs);
@@ -109,71 +151,96 @@ async function initializeDB(client, database) {
 }
 
 /**
- * Register Discord slash commands using Command#getSlashCommand()
+ * Register Discord slash commands.
  *
- * @param {Discord.Client} client
- * @param {config} config
- * @param {[Command]} commands
+ * @param {Discord.Client<true>} client
+ * @param {string} botToken
+ * @param {Command[]} commands
+ *
  * @returns {Promise<void>}
+ * @see Command#getSlashCommand
  */
-async function initializeSlashCommands(client, config, commands) {
+async function initializeSlashCommands(client, botToken, commands) {
     const slashCommands = [];
     for (const command of commands) {
         const slashCommand = command.getSlashCommand();
-        slashCommand.name = command.getName();
         slashCommands.push(slashCommand);
     }
-    const rest = new REST({ version: '9' }).setToken(config["bot-token"]);
+    const rest = new REST({ version: '9' }).setToken(botToken);
     try {
         console.log("Reloading slash commands.");
         await rest.put(Routes.applicationCommands(client.user.id), { body : slashCommands });
         console.log("Successfully reloaded slash commands.");
     } catch (error) {
-        console.log(error);
+        console.error(error);
         shutDownBot("Slash command registration error.");
     }
 }
 
+/**
+ * Disconnect from the database and Discord to gracefully shut down the bot.
+ *
+ * @param {string} signal The signal recieved. Should be SIGINT or SIGTERM.
+ */
 function shutDownBot(signal) {
+    ready = false;
     console.log("Bot has received " + signal + ", shutting down.");
     database.shutDown().then(() => {
         console.log("Database shut down. Bot shutting down now!");
 
         client.destroy();
         process.exit(0);
-    })
+    });
 }
 
-client.on("guildDelete", async (guild) => {
+/**
+ * Remove deleted servers from the database.
+ *
+ * @param {Discord.Guild} guild
+ *
+ * @returns {Promise<void>}
+ */
+async function onGuildDelete(guild) {
     if (!ready) {
         return;
     }
 
     await database.removeServer(guild.id);
-});
+}
 
-client.on("channelDelete", async (channel) => {
+/**
+ * Remove deleted channels from the database.
+ *
+ * @param {Discord.DMChannel | Discord.GuildBasedChannel} channel
+ *
+ * @returns {Promise<void>}
+ */
+async function onChannelDelete(channel) {
     if (!ready) {
         return;
     }
 
-    if (channel.type !== "GUILD_TEXT") {
-        return; // we only manage guild text channels
+    if (!channel.isText()) {
+        return;
     }
     await database.removeChannel(channel.id);
-});
+}
 
-client.on("messageCreate", async (message) => {
+/**
+ * Check Slowmode for each user message in a server and delete if in violation,
+ * then check if the message is a command for the bot and respond to it.
+ *
+ * @param {Discord.Message} message
+ *
+ * @returns {Promise<void>}
+ */
+async function onMessageCreate(message) {
     if (!ready) {
         return;
     }
 
-    // don't respond to bots
-    if (message.author.bot) {
-        return;
-    }
-    // bot does not handle dm messages yet
-    if (message.guild === null) {
+    // don't respond to bots, dm messages, or webhooks
+    if (message.author.bot || !message.inGuild() || !message.member) {
         return;
     }
 
@@ -189,7 +256,7 @@ client.on("messageCreate", async (message) => {
             const userTimestamp = channelData.getUserTime(authorID);
 
             if (userTimestamp === undefined || messageTimestamp >= userTimestamp + (channelData.getLength() * 1000)) {
-                channelData.addUser(authorID, messageTimestamp);
+                channelData.addUser(authorID, BigInt(messageTimestamp));
                 await database.setChannel(channelData);
             } else {
                 if (!message.guild.members.me.permissionsIn(message.channel).has(Discord.Permissions.FLAGS.MANAGE_MESSAGES)) {
@@ -211,7 +278,7 @@ client.on("messageCreate", async (message) => {
     let tagUsed = true;
     let parameters = message.content;
     // trim the leading % or @BetterSlowmode from the message
-    if (message.content.startsWith(prefix)) {
+    if (prefix && message.content.startsWith(prefix)) {
         parameters = parameters.substring(prefix.length)
         tagUsed = false;
     } else if (message.content.startsWith(`<@!${client.user.id}>`)) {
@@ -237,16 +304,17 @@ client.on("messageCreate", async (message) => {
             await sendMessage(message.channel, await commands[0].tagCommand(channelData, [], message));
         }
     }
-});
-
+}
 
 /**
- * Wrapper around sending messages with the tag command that handles permissions and includes a fallback mode for when the bot can't send embeds.
+ * Wrapper around sending messages with the tag command that handles permissions and includes a fallback mode for when
+ * the bot can't send embeds.
  *
- * @param {Discord.TextChannel} channel The channel to send the message in.
+ * @param {Discord.GuildTextBasedChannel} channel The channel to send the message in.
  * @param {Discord.MessageOptions | string} message The message to send. If it contains embeds and the bot lacks permissions,
  * it will send the non-embed content (if it exists) and an information message that asks for the permission.
- * @returns {Promise<Discord.Message>} The sent message.
+ *
+ * @returns {Promise<Discord.Message | null>} The sent message.
  */
 async function sendMessage(channel, message) {
     if (channel.guild.members.me.permissionsIn(channel).has(Discord.Permissions.FLAGS.SEND_MESSAGES)) {
@@ -263,7 +331,19 @@ async function sendMessage(channel, message) {
         } else {
             return channel.send(message);
         }
+    } else {
+        return null;
     }
 }
 
-client.login(config["bot-token"]);
+process.on("SIGINT", shutDownBot);
+process.on("SIGTERM", shutDownBot);
+
+client.on("ready", onReady);
+client.on("interactionCreate", onInteractionCreate);
+client.on("guildDelete", onGuildDelete);
+client.on("channelDelete", onChannelDelete);
+client.on("threadDelete", onChannelDelete);
+client.on("messageCreate", onMessageCreate);
+
+client.login(config.botToken);

@@ -1,6 +1,6 @@
 /*
  * This file is part of BetterSlowmode.
- * Copyright (C) 2020, 2021, 2022, 2024 Alejandro Ramos
+ * Copyright (C) 2020, 2021, 2022, 2024, 2026 Alejandro Ramos
  *
  * BetterSlowmode is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,7 +16,8 @@
  * along with BetterSlowmode.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
+import * as Discord from "discord.js";
+
 import Set from "./Set.js";
 
 /**
@@ -47,13 +48,12 @@ class SetImage extends Set {
             "\nLength must be at least 1 second and no more than 1 year.";
     }
 
-    public getSlashCommand(): object {
+    public getSlashCommand(): Discord.ApplicationCommandData {
         return {
-            type: ApplicationCommandOptionTypes.SUB_COMMAND,
-            name: "set-image",
+            name: this.getName(),
             description: "Sets an image-only slowmode of the given length and optionally includes/excludes users or roles.",
             options: Set.SLASH_COMMAND_OPTIONS
-        }
+        };
     }
 }
 export default SetImage;

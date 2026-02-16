@@ -1,6 +1,6 @@
 /*
  * This file is part of BetterSlowmode.
- * Copyright (C) 2020, 2021, 2022, 2024 Alejandro Ramos
+ * Copyright (C) 2020, 2021, 2022, 2024, 2026 Alejandro Ramos
  *
  * BetterSlowmode is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,8 +16,7 @@
  * along with BetterSlowmode.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import Discord from "discord.js";
-import { ApplicationCommandOptionType, ChannelType } from "discord-api-types/v9";
+import * as Discord from "discord.js";
 
 import Command from "./Command.js";
 import ChannelData from "../ChannelData.js";
@@ -41,31 +40,22 @@ class Remove extends Command {
             "\nCan not remove a slowmode that you are subject to. This can be due to permissions, your role being included, or you being specially included.";
     }
 
-    public getSlashCommand(): object {
+    public getSlashCommand(): Discord.ApplicationCommandData {
         return {
+            name: this.getName(),
             description: "Removes the given slowmode. Can not remove a slowmode that you are subject to.",
             options: [
                 {
-                    type: ApplicationCommandOptionType.Channel,
+                    type: Discord.Constants.ApplicationCommandOptionTypes.CHANNEL,
                     name: "channel",
                     description: "The channel to remove the slowmode from.",
                     required: true,
-                    channel_types: [ChannelType.GuildText]
+                    channel_types: [Discord.Constants.ChannelTypes.GUILD_TEXT]
                 }
             ]
         };
     }
 
-    /**
-     * Process the manual command inputs before sending to command() to perform the resets.
-     * Verifies that there is an existing slowmode in the given channel and that it is in the current server. Aborts if this is not the case.
-     *
-     * @param channelData Slowmode data for the channel the message is sent in. Value is null if there is none.
-     * @param parameters Each word sent as a parameter to this command
-     * @param message The raw Discord message for this request
-     *
-     * @returns A message to send to the user stating if the removal was successful or not
-     */
     public async tagCommand(channelData: ChannelData | null, parameters: string[], message: Discord.Message): Promise<Discord.MessageOptions> {
         let channel: Discord.GuildChannel = <Discord.GuildChannel>message.channel;
 
@@ -114,9 +104,9 @@ class Remove extends Command {
     /**
      * @param channel Valid channel to remove the slowmode from. Channel must exist in the server.
      * @param channelData Slowmode data for the given channel. Value is null if there is none.
-     * @param author The user making the request
+     * @param author The user making the request.
      *
-     * @returns A message to send to the user stating if the removal was successful or not
+     * @returns A message to send to the user stating if the removal was successful or not.
      */
     private async command(channel: Discord.GuildChannel, channelData: ChannelData | null, author: Discord.GuildMember): Promise<string> {
         // check if there is a slowmode

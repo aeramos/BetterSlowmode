@@ -1,6 +1,6 @@
 /*
  * This file is part of BetterSlowmode.
- * Copyright (C) 2020, 2021, 2022, 2024 Alejandro Ramos
+ * Copyright (C) 2020, 2021, 2022, 2024, 2026 Alejandro Ramos
  *
  * BetterSlowmode is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,7 +16,7 @@
  * along with BetterSlowmode.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import Discord from "discord.js";
+import * as Discord from "discord.js";
 
 import Command from "./Command.js";
 import ChannelData from "../ChannelData.js";
@@ -38,9 +38,9 @@ class Info extends Command {
             "\nPrints information about the bot with links to the code, FAQ, support server, and the invite link.";
     }
 
-    public getSlashCommand(): object {
+    public getSlashCommand(): Discord.ApplicationCommandData {
         return {
-            name: "info",
+            name: this.getName(),
             description: "Prints information about the bot with links to the code, FAQ, support server, and the invite link."
         };
     }
@@ -55,6 +55,9 @@ class Info extends Command {
         });
     }
 
+    /**
+     * @returns A formatted message (with embeds if possible) describing the bot and linking to the FAQ, source code, support server, and invite URL.
+     */
     private command(): Discord.MessageOptions {
         return {
             // used as a fallback for the tag command in case the bot lacks the Embed Links permission. see main.sendMessage()
@@ -74,7 +77,7 @@ class Info extends Command {
                         `\n[Bot Invite](https://discord.com/api/oauth2/authorize?client_id=${this.id}&permissions=26624&scope=bot%20applications.commands)`
                 })
             ]
-        }
+        };
     }
 }
 export default Info;

@@ -1,6 +1,6 @@
 /*
  * This file is part of BetterSlowmode.
- * Copyright (C) 2021, 2022, 2024 Alejandro Ramos
+ * Copyright (C) 2021, 2022, 2024, 2026 Alejandro Ramos
  *
  * BetterSlowmode is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,7 +16,7 @@
  * along with BetterSlowmode.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import Discord from "discord.js";
+import * as Discord from "discord.js";
 
 import ChannelData from "../ChannelData.js";
 
@@ -27,14 +27,11 @@ import ChannelData from "../ChannelData.js";
 abstract class Command {
     /**
      * The Discord user ID of the bot.
-     *
-     * @protected
      */
     protected readonly id: Discord.Snowflake;
 
     /**
      * @param id The Discord user ID of the bot.
-     * @protected
      */
     protected constructor(id: Discord.Snowflake) {
         this.id = id;
@@ -53,7 +50,7 @@ abstract class Command {
     /**
      * @returns The object to send the REST API to register the slash command.
      */
-    public abstract getSlashCommand(): object;
+    public abstract getSlashCommand(): Discord.ApplicationCommandData;
 
     /**
      * Processes and handles a user's tag command request.
@@ -79,7 +76,6 @@ abstract class Command {
      * @param totalSeconds A positive integer amount of seconds.
      *
      * @returns A string in the form: "1 hour, 23 minutes, 20 seconds".
-     * @protected
      */
     protected static getPrettyTime(totalSeconds: number): string {
         const years = Math.floor(totalSeconds / 31536000);
@@ -106,7 +102,6 @@ abstract class Command {
      * @param botPermissions Map of <Permission, User-friendly permission name> with the permissions the bot requires.
      *
      * @returns A user-friendly list of required user/bot permissions that are missing, or an empty string if the requirements are met.
-     * @protected
      */
     protected static getMissingPermissions(author: Discord.GuildMember, channel: Discord.GuildChannel, userPermissions: Map<Discord.PermissionResolvable, string>, botPermissions: Map<Discord.PermissionResolvable, string>): string {
         let output = "";
@@ -137,7 +132,6 @@ abstract class Command {
      * @param roleExcludes List of roles specially excluded from the slowmode.
      *
      * @returns A string listing the includes and excludes of the slowmode, including the default permission-based inclusions.
-     * @protected
      */
     protected static getSlowmodeSubjects(userIncludes: Discord.GuildMember[], userExcludes: Discord.GuildMember[], roleIncludes: Discord.Role[], roleExcludes: Discord.Role[]): string {
         let includes = roleIncludes.length === 0 ? "" : " It specially includes: " + Command.getDiscordRoleTags(roleIncludes).join(", ");
@@ -161,7 +155,6 @@ abstract class Command {
      * @param skipRegex If true, skips regex checking for when it's already been done on the given string.
      *
      * @returns The channel if it exists in the server or an appropriate error message for the bot to respond with.
-     * @protected
      */
     protected async getChannel(channelTag: string, guild: Discord.Guild, channelID: Discord.Snowflake, authorID: Discord.Snowflake, skipRegex: boolean): Promise<Discord.GuildChannel | string> {
         // parse the tag. abort if the tag is invalid
@@ -195,7 +188,6 @@ abstract class Command {
      * @param author The user who made the initial request. Any error message will be directed at this user.
      *
      * @returns A list of GuildMembers or an error message directed at the user if any members could not be found.
-     * @protected
      */
     protected static async getMembers(userIDs: Set<Discord.Snowflake>, guild: Discord.Guild, author: Discord.GuildMember): Promise<Set<Discord.GuildMember> | string> {
         // fetch takes time even when the request is empty
@@ -232,7 +224,6 @@ abstract class Command {
      * @param author The user who made the initial request. Any error message will be directed at this user.
      *
      * @returns A list of Roles or an error message directed at the user if any members could not be found.
-     * @protected
      */
     protected static async getRoles(roleIDs: Set<Discord.Snowflake>, guild: Discord.Guild, author: Discord.GuildMember): Promise<Set<Discord.Role> | string> {
         const roleObjects = new Set<Discord.Role>();
@@ -259,7 +250,6 @@ abstract class Command {
      * @param requiredPermissions Map of <Permission, User-Friendly Permission Name> with the permissions the user requires.
      *
      * @returns A list of missing permissions in the form: "Manage Messages, Embed Links". Returns an empty string if the user has the permissions.
-     * @private
      */
     private static getMissingMemberPermissions(member: Discord.GuildMember, channel: Discord.GuildChannel, requiredPermissions: Map<Discord.PermissionResolvable, string>): String {
         let missingPermissions = "";
@@ -280,7 +270,6 @@ abstract class Command {
      * @param members List of members from which the usernames are read.
      *
      * @returns An array in the form ["@Jack", "@Jill"].
-     * @private
      */
     private static getDiscordUserTags(members: Discord.GuildMember[]): string[] {
         const array = [];
@@ -296,7 +285,6 @@ abstract class Command {
      * @param roles List of roles from which the names are read.
      *
      * @returns An array in the form ["@Admins", "@Moderators"].
-     * @private
      */
     private static getDiscordRoleTags(roles: Discord.Role[]): string[] {
         const array = [];

@@ -1,6 +1,6 @@
 /*
  * This file is part of BetterSlowmode.
- * Copyright (C) 2024 Alejandro Ramos
+ * Copyright (C) 2024, 2026 Alejandro Ramos
  *
  * BetterSlowmode is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,8 +16,7 @@
  * along with BetterSlowmode.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import Discord from "discord.js";
-import {ApplicationCommandOptionType, ChannelType} from "discord-api-types/v9";
+import * as Discord from "discord.js";
 
 import Command from "./Command.js";
 import ChannelData from "../ChannelData.js";
@@ -41,19 +40,20 @@ class Reset extends Command {
             "\nCan not reset a slowmode that you are subject to. This can be due to permissions, your role being included, or you being specially included.";
     }
 
-    public getSlashCommand(): object {
+    public getSlashCommand(): Discord.ApplicationCommandData {
         return {
+            name: this.getName(),
             description: "Resets a slowmode. Can not reset a slowmode that you are subject to.",
             options: [
                 {
-                    type: ApplicationCommandOptionType.Channel,
+                    type: Discord.Constants.ApplicationCommandOptionTypes.CHANNEL,
                     name: "channel",
                     description: "The channel to reset slowmodes from.",
                     required: true,
-                    channel_types: [ChannelType.GuildText]
+                    channel_types: [Discord.Constants.ChannelTypes.GUILD_TEXT]
                 },
                 {
-                    type: ApplicationCommandOptionType.User,
+                    type: Discord.Constants.ApplicationCommandOptionTypes.USER,
                     name: "user",
                     description: "Reset the slowmode of a user.",
                     required: false
@@ -151,16 +151,17 @@ class Reset extends Command {
     }
 
     /**
-     *  Resets a given slowmode if the requester has the Manage Channel permission and is not subject to the slowmode.
-     *  This matches the permissions required for the "remove" command.
+     * Resets a given slowmode if the requester has the Manage Channel permission and is not subject to the slowmode.
+     * This matches the permissions required for the Remove command.
      *
-     *  @param channel The channel to reset the slowmodes in
-     *  @param channelData Reset every slowmode in the channel. If users are specified, only reset those users' slowmodes.
-     *  @param author The requester. This user must have "Manage Channel" permissions in the specified channel and most not be subject to the slowmode.
-     *  @param users Reset the slowmodes of each user listed
+     * If users are specified, only reset those users' slowmodes.
      *
-     *  @returns A message to send to the user stating if the reset was successful or not.
-     *  @private
+     * @param channel The channel to reset the slowmodes in.
+     * @param channelData The slowmode information to operate on.
+     * @param author The requester. This user must have "Manage Channel" permissions in the specified channel and must not be subject to the slowmode.
+     * @param users If users are specified, only reset their slowmodes.
+     *
+     * @returns A message to send to the user stating if the reset was successful or not.
      */
     private async command(channel: Discord.GuildChannel, channelData: ChannelData | null, author: Discord.GuildMember, users: Set<Discord.User>): Promise<string> {
         // check if there is a slowmode

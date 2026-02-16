@@ -1,6 +1,6 @@
 /*
  * This file is part of BetterSlowmode.
- * Copyright (C) 2021, 2022, 2024 Alejandro Ramos
+ * Copyright (C) 2021, 2022, 2024, 2026 Alejandro Ramos
  *
  * BetterSlowmode is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,8 +16,7 @@
  * along with BetterSlowmode.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import Discord from "discord.js";
-import { ApplicationCommandOptionType, ChannelType } from "discord-api-types/v9";
+import * as Discord from "discord.js";
 
 import Command from "./Command.js";
 import ChannelData from "../ChannelData.js";
@@ -40,16 +39,17 @@ class Status extends Command {
             "\nPrints the length and special inclusions/exclusions of the slowmode in the given channel, or the current channel if no channel is provided.";
     }
 
-    public getSlashCommand(): object {
+    public getSlashCommand(): Discord.ApplicationCommandData {
         return {
+            name: this.getName(),
             description: "Prints information about the slowmode in the given channel or the current channel if none are given.",
             options: [
                 {
-                    type: ApplicationCommandOptionType.Channel,
+                    type: Discord.Constants.ApplicationCommandOptionTypes.CHANNEL,
                     name: "channel",
                     description: "The channel to print information about.",
                     required: false,
-                    channel_types: [ChannelType.GuildText]
+                    channel_types: [Discord.Constants.ChannelTypes.GUILD_TEXT]
                 }
             ]
         };
@@ -95,6 +95,13 @@ class Status extends Command {
         });
     }
 
+    /**
+     * @param guild The server.
+     * @param channelData Current slowmode data for the channel, null if there is no slowmode.
+     * @param channelID Discord channel ID.
+     *
+     * @returns A user-friendly string describing the slowmode in the given channel including its length, type, inclusions, and exclusions.
+     */
     private async command(guild: Discord.Guild, channelData: ChannelData | null, channelID: Discord.Snowflake): Promise<string> {
         if (channelData === null) {
             return `There is no slowmode in <#${channelID}>.`;
@@ -117,10 +124,9 @@ class Status extends Command {
      * Gets a list of members that still exist in the server.
      *
      * @param guild The server.
-     * @param memberIDs The list of IDs to search for.
-     * @private
+     * @param memberIDs The list of IDs to request.
      *
-     * @returns A list of members. If any of the given members no longer exist, they will not be included in the list.
+     * @returns A list of members. If any of the given members are not in the server, they will not be included in the list.
      */
     private static async getCurrentMembers(guild: Discord.Guild, memberIDs: Discord.Snowflake[]): Promise<Discord.GuildMember[]> {
         // fetch takes time even when the request is empty
@@ -145,8 +151,7 @@ class Status extends Command {
      * Gets a list of roles that still exist in the server.
      *
      * @param guild The server.
-     * @param roleIDs The list of IDs to search for.
-     * @private
+     * @param roleIDs The list of IDs to request.
      *
      * @returns A list of roles. If any of the given roles no longer exist, they will not be included in the list.
      */

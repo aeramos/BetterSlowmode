@@ -1,6 +1,6 @@
 /*
  * This file is part of BetterSlowmode.
- * Copyright (C) 2021, 2024 Alejandro Ramos
+ * Copyright (C) 2021, 2024, 2026 Alejandro Ramos
  *
  * BetterSlowmode is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@
  */
 
 import { Sequelize, DataTypes, Op, Model, ModelStatic } from "sequelize";
-import Discord from "discord.js";
+import * as Discord from "discord.js";
 
 import ChannelData from "./ChannelData.js";
 
@@ -47,13 +47,11 @@ import ChannelData from "./ChannelData.js";
 class Database {
     /**
      * The database connection.
-     * @private
      */
     private readonly sequelize: Sequelize;
 
     /**
      * The Sequelize representation of the ChannelData table.
-     * @private
      */
     private readonly ChannelData: ModelStatic<Model<any, any>>;
 
@@ -224,7 +222,7 @@ class Database {
      *
      * @returns Tuple with number of deleted channels and number of expired users.
      */
-    public async sanitizeDatabase(serverIDs: Discord.Snowflake[], channelIDs: Discord.Snowflake[]): Promise<number[]> {
+    public async sanitizeDatabase(serverIDs: Discord.Snowflake[], channelIDs: Discord.Snowflake[]): Promise<[number, number]> {
         // if there are no servers or our servers have no text channels, delete all rows and exit
         if (serverIDs.length === 0 || channelIDs.length === 0) {
             return [
