@@ -28,8 +28,8 @@ import Database from "../Database.js";
  * By default, this bot's slowmodes follow the same permissions and rules as a default slowmode: users may send only one
  * message within a given interval. This bot allows the interval to be any length between 1 second and 1 year. Users who
  * attempt to send a message during this time will be prevented, or in the case of this bot (due to API limitations),
- * their message will be deleted immediately after it is sent. These slowmodes apply to users who lack the "Manage
- * Messages", "Manage Channels", or "Administrator" permissions in the affected channel.
+ * their message will be deleted immediately after it is sent. These slowmodes apply to users who lack the "Bypass
+ * Slowmode", "Manage Messages", "Manage Channel", or "Administrator" permission in the affected channel.
  *
  * This bot also features additional configuration options that the default Discord slowmode lacks. The `include` option
  * allows the creation of slowmodes that apply to users or roles that would normally be immune because of the Discord
@@ -58,7 +58,7 @@ class Set extends Command {
      */
     protected static readonly SLASH_COMMAND_OPTIONS: Discord.ApplicationCommandOptionData[] = [
         {
-            type: Discord.Constants.ApplicationCommandOptionTypes.INTEGER,
+            type: Discord.ApplicationCommandOptionType.Integer,
             name: "days",
             description: "The number of days to add to the slowmode length.",
             required: false,
@@ -66,7 +66,7 @@ class Set extends Command {
             max_value: 364
         },
         {
-            type: Discord.Constants.ApplicationCommandOptionTypes.INTEGER,
+            type: Discord.ApplicationCommandOptionType.Integer,
             name: "hours",
             description: "The number of hours to add to the slowmode length.",
             required: false,
@@ -74,7 +74,7 @@ class Set extends Command {
             max_value: 23
         },
         {
-            type: Discord.Constants.ApplicationCommandOptionTypes.INTEGER,
+            type: Discord.ApplicationCommandOptionType.Integer,
             name: "minutes",
             description: "The number of minutes to add to the slowmode length.",
             required: false,
@@ -82,7 +82,7 @@ class Set extends Command {
             max_value: 59
         },
         {
-            type: Discord.Constants.ApplicationCommandOptionTypes.INTEGER,
+            type: Discord.ApplicationCommandOptionType.Integer,
             name: "seconds",
             description: "The number of seconds to add to the slowmode length.",
             required: false,
@@ -90,13 +90,13 @@ class Set extends Command {
             max_value: 60
         },
         {
-            type: Discord.Constants.ApplicationCommandOptionTypes.MENTIONABLE,
+            type: Discord.ApplicationCommandOptionType.Mentionable,
             name: "include",
             description: "User or role to include to the slowmode.",
             required: false
         },
         {
-            type: Discord.Constants.ApplicationCommandOptionTypes.MENTIONABLE,
+            type: Discord.ApplicationCommandOptionType.Mentionable,
             name: "exclude",
             description: "User or role to exclude from the slowmode.",
             required: false
@@ -120,7 +120,7 @@ class Set extends Command {
             "\nLength must be at least 1 second and no more than 1 year.";
     }
 
-    public getSlashCommand(): Discord.ApplicationCommandData {
+    public getSlashCommand(): Discord.ChatInputApplicationCommandData {
         return {
             name: this.getName(),
             description: "Sets a slowmode of the given length and optionally includes/excludes users or roles.",
@@ -128,7 +128,7 @@ class Set extends Command {
         };
     }
 
-    public async tagCommand(channelData: ChannelData | null, parameters: string[], message: Discord.Message): Promise<Discord.MessageOptions> {
+    public async tagCommand(channelData: ChannelData | null, parameters: string[], message: Discord.Message): Promise<Discord.MessageCreateOptions> {
         if (parameters.length === 0) {
             return {
                 content: `${message.author}, you need to add parameters to this command. For more info enter: <@${this.id}> \`help ${this.getName()}\``
@@ -278,7 +278,7 @@ class Set extends Command {
 
         // throw error if any of the specified users/roles do not exist
         // fetch userInclusionObjects
-        let temp: any = await Command.getMembers(userInclusions, guild, author);
+        let temp: globalThis.Set<Discord.GuildMember> | globalThis.Set<Discord.Role> | string = await Command.getMembers(userInclusions, guild, author);
         if (typeof temp === "string") {
             return {
                 content: temp
@@ -322,7 +322,7 @@ class Set extends Command {
         }
     }
 
-    public async slashCommand(interaction: Discord.CommandInteraction): Promise<void> {
+    public async slashCommand(interaction: Discord.ChatInputCommandInteraction): Promise<Discord.InteractionResponse> {
         const channel: Discord.TextChannel = <Discord.TextChannel>interaction.channel;
         if (!channel.viewable) {
             return interaction.reply({
@@ -370,7 +370,7 @@ class Set extends Command {
     /**
      * Sets a new slowmode in the current channel, replacing the existing one if necessary and if the requester is not subject to it.
      *
-     * @param author The requester. Must have Manage Messages permissions in the channel.
+     * @param author The requester. Must have Manage Channel or Administrator permission in the channel.
      * @param channel The channel the request was made in.
      * @param guild The server this is happening in.
      * @param channelData Current slowmode data for the channel, null if there is no slowmode present. This will be overwritten.
@@ -386,7 +386,7 @@ class Set extends Command {
                           userInclusions: globalThis.Set<Discord.GuildMember>, userExclusions: globalThis.Set<Discord.GuildMember>,
                           roleInclusions: globalThis.Set<Discord.Role>, roleExclusions: globalThis.Set<Discord.Role>): Promise<string> {
         // check that the member has the permissions to use this command
-        const missingPermissions = Command.getMissingPermissions(author, channel, new Map([[Discord.Permissions.FLAGS.MANAGE_CHANNELS, "Manage Channel"]]), new Map([[Discord.Permissions.FLAGS.MANAGE_MESSAGES, "Manage Messages"]]));
+        const missingPermissions = Command.getMissingPermissions(author, channel, new Map([[Discord.PermissionFlagsBits.ManageChannels, "Manage Channel"]]), new Map([[Discord.PermissionFlagsBits.ManageMessages, "Manage Messages"]]));
         if (missingPermissions) {
             return missingPermissions;
         }

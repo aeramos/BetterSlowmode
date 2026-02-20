@@ -50,9 +50,8 @@ Also, it would mean a lot to us if you starred our repository on [GitHub](https:
       it manages the messages by itself. Through this, the bot is able to create slowmodes just for images or slowmodes
       that exclude certain members.
 - The slowmode doesn't do anything. I set a slowmode, but it doesn't delete any of my messages. Is it broken?
-    - No, this is correct behavior. You are immune from any slowmodes you create because you have either the Manage
-      Channel of Administrator permissions in the channel. The slowmode will apply to members who don't have those
-      permissions, according to the rules you set.
+    - The bot is working as designed. Users with the Administrator, Manage Channel, Manage Messages, or Bypass Slowmode
+      permission are automatically exempt from slowmodes, unless they are specifically included.
 - How do I include a moderator to a slowmode?
     - Using the `-include` option with `@BetterSlowmode set`, `set-text`, or `set-image`, you can include individual
       members or roles. However, you can only specially include people who are less powerful than you. This is

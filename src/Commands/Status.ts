@@ -39,23 +39,23 @@ class Status extends Command {
             "\nPrints the length and special inclusions/exclusions of the slowmode in the given channel, or the current channel if no channel is provided.";
     }
 
-    public getSlashCommand(): Discord.ApplicationCommandData {
+    public getSlashCommand(): Discord.ChatInputApplicationCommandData {
         return {
             name: this.getName(),
             description: "Prints information about the slowmode in the given channel or the current channel if none are given.",
             options: [
                 {
-                    type: Discord.Constants.ApplicationCommandOptionTypes.CHANNEL,
+                    type: Discord.ApplicationCommandOptionType.Channel,
                     name: "channel",
                     description: "The channel to print information about.",
                     required: false,
-                    channel_types: [Discord.Constants.ChannelTypes.GUILD_TEXT]
+                    channel_types: [Discord.ChannelType.GuildText]
                 }
             ]
         };
     }
 
-    public async tagCommand(channelData: ChannelData | null, parameters: string[], message: Discord.Message): Promise<Discord.MessageOptions> {
+    public async tagCommand(channelData: ChannelData | null, parameters: string[], message: Discord.Message): Promise<Discord.MessageCreateOptions> {
         let channelID = message.channel.id;
         if (parameters.length > 0) {
             if (parameters.length > 1) {
@@ -79,7 +79,7 @@ class Status extends Command {
         };
     }
 
-    public async slashCommand(interaction: Discord.CommandInteraction): Promise<void> {
+    public async slashCommand(interaction: Discord.ChatInputCommandInteraction): Promise<Discord.InteractionResponse> {
         // channel parameter is not required, so fall back to the current channel if no channel was provided
         const channel: Discord.TextChannel = <Discord.TextChannel>(interaction.options.getChannel("channel", false) || <Discord.TextChannel>interaction.channel);
         const channelData = await this.database.getChannel(channel.id);
@@ -137,7 +137,6 @@ class Status extends Command {
         return guild.members.fetch({
             user: memberIDs,
             withPresences: false,
-            force: true,
             time: 10000
         }).then((members) => {
             return Array.from(members.values());

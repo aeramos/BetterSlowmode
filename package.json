@@ -1,6 +1,6 @@
 {
   "name": "betterslowmode",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A Discord bot that adds more depth and customization to text channel slowmodes.",
   "main": "src/init.js",
   "author": "Alejandro Ramos",
@@ -18,9 +18,7 @@
     "start": "node src/init.js"
   },
   "dependencies": {
-    "@discordjs/rest": "^0.3.0",
-    "discord-api-types": "^0.27.3",
-    "discord.js": "^13.6.0",
+    "discord.js": "^14.25.1",
     "dotenv": "^17.3.1",
     "pg": "^8.7.3",
     "pg-hstore": "^2.3.4",
@@ -31,7 +29,7 @@
     "typescript": "^5.9.3"
   },
   "engines": {
-    "node": "^18.19.0"
+    "node": "^22.12.0"
   },
   "type": "module"
 }

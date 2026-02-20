@@ -38,8 +38,8 @@ class Help extends Command {
             "\nLists commands. If given a command, describes usage of command.";
     }
 
-    public getSlashCommand(): Discord.ApplicationCommandData {
-        const commandChoices: Discord.ApplicationCommandOptionChoiceData[] = []
+    public getSlashCommand(): Discord.ChatInputApplicationCommandData {
+        const commandChoices: Discord.ApplicationCommandOptionChoiceData<string>[] = []
         for (const command of this.commands) {
             commandChoices.push(
                 {
@@ -52,7 +52,7 @@ class Help extends Command {
             description: "Lists commands. If given a command, describes usage of command.",
             options: [
                 {
-                    type: Discord.Constants.ApplicationCommandOptionTypes.STRING,
+                    type: Discord.ApplicationCommandOptionType.String,
                     name: "command",
                     description: "The command to describe.",
                     required: false,
@@ -62,7 +62,7 @@ class Help extends Command {
         };
     }
 
-    public async tagCommand(channelData: ChannelData, parameters: string[], message: Discord.Message): Promise<Discord.MessageOptions> {
+    public async tagCommand(channelData: ChannelData, parameters: string[], message: Discord.Message): Promise<Discord.MessageCreateOptions> {
         // if no command was given, print the generic help listing. if a *single* command was given, print the help for that command, otherwise print help for the help command
         if (parameters.length === 0) {
             return {
@@ -81,7 +81,7 @@ class Help extends Command {
         }
     }
 
-    public async slashCommand(interaction: Discord.CommandInteraction): Promise<void> {
+    public async slashCommand(interaction: Discord.ChatInputCommandInteraction): Promise<Discord.InteractionResponse> {
         return interaction.reply({
             content: this.command(interaction.options.getString("command", false))
         });

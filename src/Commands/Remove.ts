@@ -40,23 +40,23 @@ class Remove extends Command {
             "\nCan not remove a slowmode that you are subject to. This can be due to permissions, your role being included, or you being specially included.";
     }
 
-    public getSlashCommand(): Discord.ApplicationCommandData {
+    public getSlashCommand(): Discord.ChatInputApplicationCommandData {
         return {
             name: this.getName(),
             description: "Removes the given slowmode. Can not remove a slowmode that you are subject to.",
             options: [
                 {
-                    type: Discord.Constants.ApplicationCommandOptionTypes.CHANNEL,
+                    type: Discord.ApplicationCommandOptionType.Channel,
                     name: "channel",
                     description: "The channel to remove the slowmode from.",
                     required: true,
-                    channel_types: [Discord.Constants.ChannelTypes.GUILD_TEXT]
+                    channel_types: [Discord.ChannelType.GuildText]
                 }
             ]
         };
     }
 
-    public async tagCommand(channelData: ChannelData | null, parameters: string[], message: Discord.Message): Promise<Discord.MessageOptions> {
+    public async tagCommand(channelData: ChannelData | null, parameters: string[], message: Discord.Message): Promise<Discord.MessageCreateOptions> {
         let channel: Discord.GuildChannel = <Discord.GuildChannel>message.channel;
 
         // if parameters were provided, parse the input and find a new channel and channelData
@@ -85,7 +85,7 @@ class Remove extends Command {
         };
     }
 
-    public async slashCommand(interaction: Discord.CommandInteraction): Promise<void> {
+    public async slashCommand(interaction: Discord.ChatInputCommandInteraction): Promise<Discord.InteractionResponse> {
         // slash command guarantees that the channel exists in the server
         const channel = <Discord.GuildChannel>interaction.options.getChannel("channel", true);
         const channelData = await this.database.getChannel(channel.id);
@@ -115,7 +115,7 @@ class Remove extends Command {
         }
 
         // check if this user is allowed to remove the slowmode
-        const missingPermissions = Command.getMissingPermissions(author, channel, new Map([[Discord.Permissions.FLAGS.MANAGE_CHANNELS, "Manage Channel"]]), new Map());
+        const missingPermissions = Command.getMissingPermissions(author, channel, new Map([[Discord.PermissionFlagsBits.ManageChannels, "Manage Channel"]]), new Map());
         if (missingPermissions) {
             return missingPermissions;
         }

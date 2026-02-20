@@ -48,7 +48,7 @@ class SetImage extends Set {
             "\nLength must be at least 1 second and no more than 1 year.";
     }
 
-    public getSlashCommand(): Discord.ApplicationCommandData {
+    public getSlashCommand(): Discord.ChatInputApplicationCommandData {
         return {
             name: this.getName(),
             description: "Sets an image-only slowmode of the given length and optionally includes/excludes users or roles.",

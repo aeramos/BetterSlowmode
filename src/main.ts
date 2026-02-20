@@ -17,8 +17,6 @@
  */
 
 import * as Discord from "discord.js";
-import { REST } from "@discordjs/rest";
-import { Routes } from "discord-api-types/rest/v9";
 
 import config from "./Config.js";
 
@@ -34,10 +32,10 @@ import SetText from "./Commands/SetText.js";
 import Status from "./Commands/Status.js";
 
 const client: Discord.Client = new Discord.Client({
-    intents: [Discord.Intents.FLAGS.GUILDS, Discord.Intents.FLAGS.GUILD_MESSAGES],
-    makeCache: Discord.Options.cacheWithLimits(Discord.Options.defaultMakeCacheSettings),
+    intents: [Discord.IntentsBitField.Flags.MessageContent, Discord.IntentsBitField.Flags.DirectMessages, Discord.IntentsBitField.Flags.Guilds, Discord.IntentsBitField.Flags.GuildMembers, Discord.IntentsBitField.Flags.GuildMessages],
+    makeCache: Discord.Options.cacheWithLimits(Discord.Options.DefaultMakeCacheSettings),
     sweepers: {
-        ...Discord.Options.defaultSweeperSettings,
+        ...Discord.Options.DefaultSweeperSettings,
         messages: { // 30 second message cache
             lifetime: 30,
             interval: 60
@@ -93,21 +91,21 @@ async function onReady(client: Discord.Client<true>): Promise<void> {
  * @param interaction
  */
 async function onInteractionCreate(interaction: Discord.Interaction): Promise<void> {
-    // we only register slash commands, so it should always be a Discord.CommandInteraction
-    if (!interaction.isCommand()) {
+    // we only register slash commands, so it should always be a Discord.ChatInputCommand
+    if (!interaction.isChatInputCommand()) {
         return;
     }
 
     if (!interaction.guild) {
         if (interaction.commandName !== "help" && interaction.commandName !== "info") {
-            return interaction.reply({
+            return void await interaction.reply({
                 content: "This command can only be used in a server."
             });
         }
     }
     for (const command of commands) {
         if (command.getName() === interaction.commandName) {
-            return command.slashCommand(interaction);
+            return void await command.slashCommand(interaction);
         }
     }
 }
@@ -120,7 +118,7 @@ async function onInteractionCreate(interaction: Discord.Interaction): Promise<vo
  */
 async function initializeDB(client: Discord.Client, database: Database): Promise<void> {
     const serverIDs = Array.from(client.guilds.cache.keys());
-    const channelIDs = Array.from(client.channels.cache.filter(channel => channel.isText()).keys());
+    const channelIDs = Array.from(client.channels.cache.filter(channel => channel.isTextBased()).keys());
 
     await database.initialize();
     const [deleted, expired] = await database.sanitizeDatabase(serverIDs, channelIDs);
@@ -143,10 +141,10 @@ async function initializeSlashCommands(client: Discord.Client<true>, botToken: s
         const slashCommand = command.getSlashCommand();
         slashCommands.push(slashCommand);
     }
-    const rest = new REST({ version: '9' }).setToken(botToken);
+    const rest = new Discord.REST({ version: '10' }).setToken(botToken);
     try {
         console.log("Reloading slash commands.");
-        await rest.put(Routes.applicationCommands(client.user.id), { body : slashCommands });
+        await rest.put(Discord.Routes.applicationCommands(client.user.id), { body : slashCommands });
         console.log("Successfully reloaded slash commands.");
     } catch (error) {
         console.error(error);
@@ -193,7 +191,7 @@ async function onChannelDelete(channel: Discord.DMChannel | Discord.GuildBasedCh
         return;
     }
 
-    if (!channel.isText()) {
+    if (!channel.isTextBased()) {
         return;
     }
     await database.removeChannel(channel.id);
@@ -230,7 +228,7 @@ async function onMessageCreate(message: Discord.Message): Promise<void> {
                 channelData.addUser(authorID, BigInt(messageTimestamp));
                 await database.setChannel(channelData);
             } else {
-                if (!message.guild.members.me!.permissionsIn(message.channel).has(Discord.Permissions.FLAGS.MANAGE_MESSAGES)) {
+                if (!message.guild.members.me!.permissionsIn(message.channel).has(Discord.PermissionFlagsBits.ManageMessages)) {
                     await sendMessage(message.channel, "Error: Could not delete message because BetterSlowmode does not have the \"Manage Messages\" permission in this channel." +
                         "\nBetterSlowmode needs the \"Manage Messages\" and \"Send Messages\" permissions to function." +
                         "\nIf you want to remove the slowmode, use: `@BetterSlowmode remove`. Use `@BetterSlowmode help` for help.");
@@ -287,10 +285,10 @@ async function onMessageCreate(message: Discord.Message): Promise<void> {
  *
  * @returns The sent message.
  */
-async function sendMessage(channel: Discord.GuildTextBasedChannel, message: Discord.MessageOptions | string): Promise<Discord.Message | null> {
-    if (channel.guild.members.me!.permissionsIn(channel).has(Discord.Permissions.FLAGS.SEND_MESSAGES)) {
+async function sendMessage(channel: Discord.GuildTextBasedChannel, message: Discord.MessageCreateOptions | string): Promise<Discord.Message | null> {
+    if (channel.guild.members.me!.permissionsIn(channel).has(Discord.PermissionFlagsBits.SendMessages)) {
         if (typeof message !== "string" && message.embeds) {
-            if (channel.guild.members.me!.permissionsIn(channel).has(Discord.Permissions.FLAGS.EMBED_LINKS)) {
+            if (channel.guild.members.me!.permissionsIn(channel).has(Discord.PermissionFlagsBits.EmbedLinks)) {
                 message.content = undefined;
                 return channel.send(message);
             } else {

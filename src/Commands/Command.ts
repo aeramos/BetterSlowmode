@@ -50,7 +50,7 @@ abstract class Command {
     /**
      * @returns The object to send the REST API to register the slash command.
      */
-    public abstract getSlashCommand(): Discord.ApplicationCommandData;
+    public abstract getSlashCommand(): Discord.ChatInputApplicationCommandData;
 
     /**
      * Processes and handles a user's tag command request.
@@ -61,14 +61,14 @@ abstract class Command {
      *
      * @returns The response message to send in the channel.
      */
-    public abstract tagCommand(channelData: ChannelData | null, parameters: string[], message: Discord.Message): Promise<Discord.MessageOptions>;
+    public abstract tagCommand(channelData: ChannelData | null, parameters: string[], message: Discord.Message): Promise<Discord.MessageCreateOptions>;
 
     /**
      * Handles and responds to a user's slash command request.
      *
      * @param interaction The user's request through the slash command.
      */
-    public abstract slashCommand(interaction: Discord.CommandInteraction): Promise<void>;
+    public abstract slashCommand(interaction: Discord.ChatInputCommandInteraction): Promise<Discord.InteractionResponse>;
 
     /**
      * Converts a time given in seconds to years, days, hours, minutes, and seconds in a user-friendly format.
@@ -142,7 +142,7 @@ abstract class Command {
         excludes +=    userExcludes.length === 0 ? "" : (excludes === "" ? " It specially excludes: " : ", ") + Command.getDiscordUserTags(userExcludes).join(", ");
         excludes +=    excludes === "" ? "" : ".";
 
-        return " It applies to users without the Administrator, Manage Channel, or Manage Messages permissions in the channel." + includes + excludes;
+        return " It applies to users without the Administrator, Manage Channel, Manage Messages, or Bypass Slowmode permission in the channel." + includes + excludes;
     }
 
     /**
@@ -200,7 +200,6 @@ abstract class Command {
             userObjects = await guild.members.fetch({
                 user: Array.from(userIDs.values()),
                 withPresences: false,
-                force: true,
                 time: 10000
             });
         } catch (e) {
@@ -223,7 +222,7 @@ abstract class Command {
      * @param guild The server.
      * @param author The user who made the initial request. Any error message will be directed at this user.
      *
-     * @returns A list of Roles or an error message directed at the user if any members could not be found.
+     * @returns A list of Roles or an error message directed at the user if any roles could not be found.
      */
     protected static async getRoles(roleIDs: Set<Discord.Snowflake>, guild: Discord.Guild, author: Discord.GuildMember): Promise<Set<Discord.Role> | string> {
         const roleObjects = new Set<Discord.Role>();

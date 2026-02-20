@@ -171,11 +171,13 @@ class ChannelData {
      * 6. If a user is a member of both an included role and an excluded role, the roles' positions in the Discord UI
      * are compared. The status of their highest-ranked role that is included or excluded will determine if they are
      * subject to the slowmode or not.
-     * 7. If none of the previous tests apply to the user, the default Discord slowmode settings apply: if the user has
-     * the Manage Messages permission, the Manage Channels permission, or the Administrator permission in the channel,
-     * they are not subject to the slowmode.
+     * 7. If none of the previous tests apply to the user, the default Discord Slowmode settings apply: if the user has
+     * the Bypass Slowmode permission or the Administrator permission in the channel, they are not subject to the
+     * slowmode. BetterSlowmode also keeps the previous exempt permissions from before February 23, 2026 (Manage
+     * Messages and Manage Channels) to preserve user experiences. This may change in the future.
      *
      * @returns True if the slowmode applies to the given member.
+     * @see {@link https://support.discord.com/hc/en-us/articles/360016150952-Slowmode-FAQ | Discord Slowmode documentation}
      */
     public subjectToSlowmode(member: Discord.GuildMember, channel: Discord.GuildTextBasedChannel): boolean {
         // note that the Set command prevents the owner from being included, but the server owner can change
@@ -207,7 +209,13 @@ class ChannelData {
             if (highestExcludedRole === undefined) {
                 // if the member has no roles included or excluded, just check Discord channel permissions
                 const permissions = member.permissionsIn(channel);
-                return !(permissions.has(Discord.Permissions.FLAGS.MANAGE_MESSAGES) || permissions.has(Discord.Permissions.FLAGS.MANAGE_CHANNELS) || permissions.has(Discord.Permissions.FLAGS.ADMINISTRATOR));
+                // users with Bypass Slowmode, Manage Messages, Manage Channels, or Administrator permissions are exempt from slowmodes
+                for (const permission of [Discord.PermissionFlagsBits.BypassSlowmode, Discord.PermissionFlagsBits.ManageMessages, Discord.PermissionFlagsBits.ManageChannels, Discord.PermissionFlagsBits.Administrator]) {
+                    if (permissions.has(permission)) {
+                        return false;
+                    }
+                }
+                return true;
             } else {
                 // if the member is excluded and not included
                 return false;

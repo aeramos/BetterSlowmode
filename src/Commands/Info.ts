@@ -38,18 +38,18 @@ class Info extends Command {
             "\nPrints information about the bot with links to the code, FAQ, support server, and the invite link.";
     }
 
-    public getSlashCommand(): Discord.ApplicationCommandData {
+    public getSlashCommand(): Discord.ChatInputApplicationCommandData {
         return {
             name: this.getName(),
             description: "Prints information about the bot with links to the code, FAQ, support server, and the invite link."
         };
     }
 
-    public async tagCommand(channelData: ChannelData, parameters: string[], message: Discord.Message): Promise<Discord.MessageOptions> {
+    public async tagCommand(channelData: ChannelData, parameters: string[], message: Discord.Message): Promise<Discord.MessageCreateOptions> {
         return this.command();
     }
 
-    public async slashCommand(interaction: Discord.CommandInteraction): Promise<void> {
+    public async slashCommand(interaction: Discord.ChatInputCommandInteraction): Promise<Discord.InteractionResponse> {
         return interaction.reply({
             embeds: this.command().embeds
         });
@@ -58,7 +58,7 @@ class Info extends Command {
     /**
      * @returns A formatted message (with embeds if possible) describing the bot and linking to the FAQ, source code, support server, and invite URL.
      */
-    private command(): Discord.MessageOptions {
+    private command(): Discord.MessageCreateOptions {
         return {
             // used as a fallback for the tag command in case the bot lacks the Embed Links permission. see main.sendMessage()
             content: "BetterSlowmode is a Discord bot that adds more depth and customization to text channel slowmodes, including text or image only slowmodes." +
@@ -67,7 +67,7 @@ class Info extends Command {
                 `\nSupport Server: https://discord.com/invite/${this.supportCode}` +
                 "\nBot Invite: https://discord.com/api/oauth2/authorize?client_id=${this.id}&permissions=26624&scope=bot%20applications.commands",
             embeds: [
-                new Discord.MessageEmbed({
+                {
                     title: "About BetterSlowmode",
                     url: "https://github.com/aeramos/BetterSlowmode",
                     description: "A Discord bot that adds more depth and customization to text channel slowmodes, including text or image only slowmodes." +
@@ -75,7 +75,7 @@ class Info extends Command {
                         "\n[Source Code](https://github.com/aeramos/BetterSlowmode)" +
                         `\n[Support Server](https://discord.com/invite/${this.supportCode})` +
                         `\n[Bot Invite](https://discord.com/api/oauth2/authorize?client_id=${this.id}&permissions=26624&scope=bot%20applications.commands)`
-                })
+                } as Discord.APIEmbed
             ]
         };
     }
