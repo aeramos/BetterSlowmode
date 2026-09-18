@@ -16,10 +16,75 @@
  * along with BetterSlowmode.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { ShardingManager } from 'discord.js';
+import * as Discord from "discord.js";
 
-import config from './Config.js';
+import config from "./Config.js";
+import Database from "./Database.js";
 
-const manager = new ShardingManager('src/main.js', { token: config.botToken });
-console.log("Starting shards")
-manager.spawn();
+const manager = new Discord.ShardingManager("src/main.js", {
+    token: config.botToken,
+});
+
+/**
+ * Remove expired slowmodes and information about servers/channels we no longer have access to from the database.
+ */
+async function sanitizeDatabase(): Promise<void> {
+    // get the ids of servers and channels each shard is handling so they can be spared from the database cleanup
+    const serverIDs = (await manager.broadcastEval(client => {
+        return Array.from(client.guilds.cache.keys());
+    })).flat();
+    const textBasedChannelIDs = (await manager.broadcastEval(client => {
+        return Array.from(client.channels.cache.filter(channel => channel.isTextBased()).keys());
+    })).flat();
+
+    const database = await Database.create(config.databaseURL);
+    const [deleted, expired] = await database.sanitizeDatabase(serverIDs, textBasedChannelIDs);
+    await database.close();
+
+    console.log(`Manager: Deleted channels: ${deleted}`);
+    console.log(`Manager: Expired slowmodes: ${expired}`);
+}
+
+/**
+ * Disconnect from the database and Discord to gracefully shut down the bot.
+ *
+ * @param signal The signal recieved. Should be SIGINT or SIGTERM.
+ */
+async function shutDownBot(signal: string): Promise<void> {
+    manager.respawn = false;
+    console.log(`Manager: Bot has received ${signal}, shutting down shards.`);
+
+    // add handlers to catch each shard's onDeath event
+    // i think this has a race condition: if one of the shards dies randomly and then the SIGINT is received before it respawns
+    // if that happens the timeout will handle it.
+    const allShardsDead = new Promise<void>(resolve => {
+        const remainingShards = new Set(manager.shards.keys());
+        for (const [id, shard] of manager.shards) {
+            remainingShards.add(id);
+            shard.on(Discord.ShardEvents.Death, () => {
+                remainingShards.delete(shard.id);
+                if (remainingShards.size === 0) {
+                    resolve();
+                }
+            });
+        }
+    });
+    const timeout = new Promise<void>(resolve => {
+        setTimeout(() => {
+            console.log("Manager: 2 second shard timeout exceeded. Continuing with shutdown.");
+            resolve();
+        }, 2000);
+    });
+
+    manager.broadcast("shutdown");
+    await Promise.race([allShardsDead, timeout]);
+
+    console.log("Manager: Ending manager process.")
+    process.exit(0);
+}
+
+await manager.spawn();
+await sanitizeDatabase();
+
+process.on("SIGINT", shutDownBot);
+process.on("SIGTERM", shutDownBot);

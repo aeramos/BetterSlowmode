@@ -58,7 +58,7 @@ class Database {
     /**
      * @param databaseURL A valid connection string to log into the database.
      */
-    public constructor(databaseURL: string) {
+    private constructor(databaseURL: string) {
         this.sequelize = new Sequelize(databaseURL, {
             dialectOptions: {
                 ssl: {
@@ -115,10 +115,16 @@ class Database {
     }
 
     /**
-     * Logs into the database server and creates the table if it doesn't already exist.
+     * Creates the database object, logs into the server, and creates the table if it doesn't already exist.
+     *
+     * @param databaseURL A valid connection string to log into the database.
+     *
+     * @returns An instantiated and logged-in database.
      */
-    public async initialize(): Promise<void> {
-        await this.ChannelData.sync();
+    public static async create(databaseURL: string): Promise<Database> {
+        const database = new Database(databaseURL);
+        await database.ChannelData.sync();
+        return database;
     }
 
     /**
@@ -276,7 +282,7 @@ class Database {
     /**
      * Closes the database connection.
      */
-    public async shutDown() {
+    public async close() {
         await this.sequelize.close();
     }
 }

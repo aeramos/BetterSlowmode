@@ -33,7 +33,10 @@ function checkExists(varName: string) {
 }
 
 // load and validate config
-dotenv.config({path: "config/env.conf"});
+dotenv.config({
+    path: "config/env.conf",
+    quiet: true,
+});
 checkExists("BOT_TOKEN");
 checkExists("DATABASE_URL");
 checkExists("SUPPORT_CODE");
@@ -42,7 +45,6 @@ const config: Config = {
     botToken: process.env.BOT_TOKEN!,
     databaseURL: process.env.DATABASE_URL!,
     prefix: process.env.PREFIX,
-    supportCode: process.env.SUPPORT_CODE!
+    supportCode: process.env.SUPPORT_CODE!,
 }
-
 export default config;

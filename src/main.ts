@@ -32,7 +32,7 @@ import SetText from "./Commands/SetText.js";
 import Status from "./Commands/Status.js";
 
 const client: Discord.Client = new Discord.Client({
-    intents: [Discord.IntentsBitField.Flags.MessageContent, Discord.IntentsBitField.Flags.DirectMessages, Discord.IntentsBitField.Flags.Guilds, Discord.IntentsBitField.Flags.GuildMembers, Discord.IntentsBitField.Flags.GuildMessages],
+    intents: [Discord.IntentsBitField.Flags.MessageContent, Discord.IntentsBitField.Flags.DirectMessages, Discord.IntentsBitField.Flags.Guilds, Discord.IntentsBitField.Flags.GuildMessages],
     makeCache: Discord.Options.cacheWithLimits(Discord.Options.DefaultMakeCacheSettings),
     sweepers: {
         ...Discord.Options.DefaultSweeperSettings,
@@ -46,7 +46,7 @@ const client: Discord.Client = new Discord.Client({
 const prefix: string | undefined = config.prefix;
 
 /**
- * Indicates if the client is ready, the database is connected and cleaned, and the slash commands are registered.
+ * Indicates if the client is ready, the database is connected, and the slash commands are registered.
  */
 let ready: boolean = false;
 
@@ -55,14 +55,14 @@ let commands: Command[];
 let helpCommand: Help;
 
 /**
- * Set up the Commands, connect to and clean the database, and register the slash commands.
+ * Set up the Commands, connect to the database, and register the slash commands.
  *
  * @param client
  */
 async function onReady(client: Discord.Client<true>): Promise<void> {
-    console.log(`Logged in as ${client.user.tag}`);
+    console.log(`Shard ${client.shard!.ids}: Logged in as ${client.user.tag}`);
 
-    database = new Database(config.databaseURL);
+    database = await Database.create(config.databaseURL);
     commands = [
         new Info(client.user.id, config.supportCode),
         new Remove(client.user.id, database),
@@ -75,19 +75,22 @@ async function onReady(client: Discord.Client<true>): Promise<void> {
     helpCommand = new Help(client.user.id, commands);
     commands.splice(0, 0, helpCommand); // put help first so it appears first when the user lists the commands
 
-    return Promise.all([initializeDB(client, database), initializeSlashCommands(client, config.botToken, commands)]).then(() => {
-        if (prefix) {
-            client.user.setActivity(prefix + "help for help!");
-        } else {
-            client.user.setActivity("/help for help!");
-        }
-        ready = true;
-        client = client as Discord.Client<true>;
-        console.log("Bot is ready!");
-    });
+    // if first shard, register slash commands so it's only done once
+    if (client.shard!.ids.includes(0)) {
+        await initializeSlashCommands(client, config.botToken, commands);
+    }
+    if (prefix) {
+        client.user.setActivity(prefix + "help for help!");
+    } else {
+        client.user.setActivity("/help for help!");
+    }
+    ready = true;
+    console.log(`Shard ${client.shard!.ids}: Ready!`);
 }
 
 /**
+ * Handle slash commands or reply to the user with a rejection if not used in a server.
+ *
  * @param interaction
  */
 async function onInteractionCreate(interaction: Discord.Interaction): Promise<void> {
@@ -111,22 +114,6 @@ async function onInteractionCreate(interaction: Discord.Interaction): Promise<vo
 }
 
 /**
- * Remove expired slowmodes and information about servers/channels we no longer have access to from the database.
- *
- * @param client
- * @param database
- */
-async function initializeDB(client: Discord.Client, database: Database): Promise<void> {
-    const serverIDs = Array.from(client.guilds.cache.keys());
-    const channelIDs = Array.from(client.channels.cache.filter(channel => channel.isTextBased()).keys());
-
-    await database.initialize();
-    const [deleted, expired] = await database.sanitizeDatabase(serverIDs, channelIDs);
-    console.log(`Init: Deleted channels: ${deleted}`);
-    console.log(`Init: Expired slowmodes: ${expired}`);
-}
-
-/**
  * Register Discord slash commands.
  *
  * @param client
@@ -143,29 +130,35 @@ async function initializeSlashCommands(client: Discord.Client<true>, botToken: s
     }
     const rest = new Discord.REST({ version: '10' }).setToken(botToken);
     try {
-        console.log("Reloading slash commands.");
-        await rest.put(Discord.Routes.applicationCommands(client.user.id), { body : slashCommands });
-        console.log("Successfully reloaded slash commands.");
+        await rest.put(Discord.Routes.applicationCommands(client.user.id), { body: slashCommands });
+        console.log(`Shard ${client.shard!.ids}: Successfully registered slash commands.`);
     } catch (error) {
+        console.error(`Shard ${client.shard!.ids}: Error: Failed to register slash commands.`);
         console.error(error);
-        shutDownBot("Slash command registration error.");
+        shutDownBot();
     }
 }
 
 /**
- * Disconnect from the database and Discord to gracefully shut down the bot.
+ * Handle message from the ShardManager.
  *
- * @param signal The signal recieved. Should be SIGINT or SIGTERM.
+ * @param message The message. Object types are sent automatically by some functions, e.g. Shard#eval.
  */
-function shutDownBot(signal: string): void {
-    ready = false;
-    console.log("Bot has received " + signal + ", shutting down.");
-    database.shutDown().then(() => {
-        console.log("Database shut down. Bot shutting down now!");
+async function onIPCMessage(message: string | object): Promise<void> {
+    if (message === "shutdown") {
+        await shutDownBot();
+    }
+}
 
-        client.destroy();
-        process.exit(0);
-    });
+/**
+ * Disconnect from the database and Discord to gracefully shut down the shard.
+ */
+async function shutDownBot(): Promise<void> {
+    ready = false;
+    await client.destroy();
+    await database.close();
+    console.log(`Shard ${client.shard!.ids}: Disconnected from Discord and database. Safely shutting down now.`);
+    process.exit(0);
 }
 
 /**
@@ -224,18 +217,20 @@ async function onMessageCreate(message: Discord.Message): Promise<void> {
             const messageTimestamp = message.createdTimestamp;
             const userTimestamp = channelData.getUserTime(authorID);
 
+            // if the message was sent after the user's slowmode expired, record the new timestamp
             if (userTimestamp === undefined || messageTimestamp >= userTimestamp + (channelData.getLength() * 1000)) {
                 channelData.addUser(authorID, BigInt(messageTimestamp));
                 await database.setChannel(channelData);
             } else {
+                // if the bot doesn't have the permissions to delete the message, complain. if it does, delete the message
                 if (!message.guild.members.me!.permissionsIn(message.channel).has(Discord.PermissionFlagsBits.ManageMessages)) {
                     await sendMessage(message.channel, "Error: Could not delete message because BetterSlowmode does not have the \"Manage Messages\" permission in this channel." +
                         "\nBetterSlowmode needs the \"Manage Messages\" and \"Send Messages\" permissions to function." +
                         "\nIf you want to remove the slowmode, use: `@BetterSlowmode remove`. Use `@BetterSlowmode help` for help.");
                 } else {
-                    await message.delete().catch((e) => {
-                        console.error("Error: Attempted to delete message that has already been deleted.");
-                        console.error(e);
+                    await message.delete().catch(error => {
+                        console.error(`Shard ${client.shard!.ids}: Error: Attempted to delete message that has already been deleted.`);
+                        console.error(error);
                     });
                 }
                 return;
@@ -265,6 +260,7 @@ async function onMessageCreate(message: Discord.Message): Promise<void> {
             if (command.getName() === parameters[0]) {
                 parameters.shift();
                 await sendMessage(message.channel, await command.tagCommand(channelData, parameters, message));
+                break;
             }
         }
     } else {
@@ -305,14 +301,15 @@ async function sendMessage(channel: Discord.GuildTextBasedChannel, message: Disc
     }
 }
 
-process.on("SIGINT", shutDownBot);
-process.on("SIGTERM", shutDownBot);
+process.on("message", onIPCMessage);
+process.on("SIGINT", () => {});
+process.on("SIGTERM", () => {});
 
-client.on("ready", onReady);
-client.on("interactionCreate", onInteractionCreate);
-client.on("guildDelete", onGuildDelete);
-client.on("channelDelete", onChannelDelete);
-client.on("threadDelete", onChannelDelete);
-client.on("messageCreate", onMessageCreate);
+client.on(Discord.Events.ClientReady, onReady);
+client.on(Discord.Events.InteractionCreate, onInteractionCreate);
+client.on(Discord.Events.GuildDelete, onGuildDelete);
+client.on(Discord.Events.ChannelDelete, onChannelDelete);
+client.on(Discord.Events.ThreadDelete, onChannelDelete);
+client.on(Discord.Events.MessageCreate, onMessageCreate);
 
 client.login(config.botToken);
