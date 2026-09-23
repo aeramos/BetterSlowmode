@@ -16,8 +16,8 @@
  * along with BetterSlowmode.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import * as Discord from "discord.js"
-import * as Sequelize from "sequelize"
+import * as Discord from "discord.js";
+import type { Model } from "sequelize";
 
 /**
  * ChannelData is the interface for working with a row in the database that contains slowmode information. The Sequelize
@@ -47,9 +47,9 @@ class ChannelData {
      *
      * @see Database
      */
-    public readonly _model: Sequelize.Model | undefined;
+    public readonly _model: Model | undefined;
 
-    constructor(id: Discord.Snowflake, serverID: Discord.Snowflake, length: number, type: boolean | null, userExcludes: Discord.Snowflake[], userIncludes: Discord.Snowflake[], roleExcludes: Discord.Snowflake[], roleIncludes: Discord.Snowflake[], users: Discord.Snowflake[], userTimes: bigint[], model: Sequelize.Model | undefined = undefined) {
+    constructor(id: Discord.Snowflake, serverID: Discord.Snowflake, length: number, type: boolean | null, userExcludes: Discord.Snowflake[], userIncludes: Discord.Snowflake[], roleExcludes: Discord.Snowflake[], roleIncludes: Discord.Snowflake[], users: Discord.Snowflake[], userTimes: bigint[], model: Model | undefined = undefined) {
         this.id = id;
         this.serverID = serverID;
         this.length = length;

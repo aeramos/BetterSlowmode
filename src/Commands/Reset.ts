@@ -20,7 +20,7 @@ import * as Discord from "discord.js";
 
 import Command from "./Command.js";
 import ChannelData from "../ChannelData.js";
-import Database from "../Database.js";
+import type Database from "../Database.js";
 
 class Reset extends Command {
     private readonly database: Database;
@@ -69,7 +69,7 @@ class Reset extends Command {
 
         if (parameters.length > 0) {
             // first parameter must match: optional channel tag with optional user tags, in that order (reset [channel] [user])
-            if (!new RegExp(/^(<#\d{1,20}>)?(<(@|@!)\d{1,20}>)*$/).test(parameters[0])) {
+            if (!new RegExp(/^(<#\d{1,20}>)?(<(@|@!)\d{1,20}>)*$/).test(parameters[0]!)) {
                 return {
                     content: `${message.author}, your tags are invalid. Example: <@${this.id}> \`${this.getName()}\` ${message.channel} ${message.member}`
                 }
@@ -77,7 +77,7 @@ class Reset extends Command {
 
             // get the tagged channel if it exists
             // will match zero or one time. inefficient to search the full string, but cleaner than a search for the regex then a search for the closing bracket ">"
-            for (const channelTag of (parameters[0].match(/<#\d{1,20}>/g) || [])) {
+            for (const channelTag of (parameters[0]!.match(/<#\d{1,20}>/g) || [])) {
                 const tempChannel = await this.getChannel(channelTag, <Discord.Guild>message.guild, message.channelId, message.author.id, true);
                 if (typeof tempChannel === "string") {
                     return {
@@ -91,10 +91,10 @@ class Reset extends Command {
 
             // finish parsing the first parameter for user tags
             // get the user tags as an array, trim the brackets and @ stuff from each one, then add the ID to the list
-            (parameters[0].match(/<@\d{1,20}>/g) || []).forEach(tag => {
+            (parameters[0]!.match(/<@\d{1,20}>/g) || []).forEach(tag => {
                 userTags.add(tag.slice(2, -1));
             });
-            (parameters[0].match(/<@!\d{1,20}>/g) || []).forEach(tag => {
+            (parameters[0]!.match(/<@!\d{1,20}>/g) || []).forEach(tag => {
                 userTags.add(tag.slice(3, -1));
             });
 

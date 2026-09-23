@@ -16,8 +16,9 @@
  * along with BetterSlowmode.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { Sequelize, DataTypes, Op, Model, ModelStatic } from "sequelize";
-import * as Discord from "discord.js";
+import { Sequelize, DataTypes, Op } from "sequelize";
+import type { Model, ModelStatic } from "sequelize";
+import type * as Discord from "discord.js";
 
 import ChannelData from "./ChannelData.js";
 
@@ -156,7 +157,7 @@ class Database {
      * @param channelData The row to add to the database. If the `_model` property is present, it will be used as a base
      * to UPDATE the row with. Otherwise, a new row will be INSERTed with this information.
      */
-    public async setChannel(channelData: ChannelData) {
+    public async setChannel(channelData: ChannelData): Promise<void> {
         // if the Model exists, the row exists, so UPDATE
         if (channelData._model) {
             // sql UPDATE the row
@@ -282,7 +283,7 @@ class Database {
     /**
      * Closes the database connection.
      */
-    public async close() {
+    public async close(): Promise<void> {
         await this.sequelize.close();
     }
 }

@@ -2,7 +2,7 @@
   "name": "betterslowmode",
   "version": "0.2.0",
   "description": "A Discord bot that adds more depth and customization to text channel slowmodes.",
-  "main": "src/init.js",
+  "main": "dist/init.js",
   "author": "Alejandro Ramos",
   "license": "AGPL-3.0+",
   "homepage": "https://github.com/aeramos/BetterSlowmode#readme",
@@ -15,7 +15,8 @@
   },
   "scripts": {
     "build": "tsc -b",
-    "start": "node src/init.js"
+    "clean": "tsc -b --clean",
+    "start": "node --enable-source-maps dist/init.js"
   },
   "dependencies": {
     "discord.js": "^14.25.1",
@@ -25,11 +26,12 @@
     "sequelize": "^6.17.0"
   },
   "devDependencies": {
+    "@tsconfig/node24": "^24.0.5",
     "sqlite3": "latest",
     "typescript": "^5.9.3"
   },
   "engines": {
-    "node": "^22.12.0"
+    "node": ">=24.17.0"
   },
   "type": "module"
 }

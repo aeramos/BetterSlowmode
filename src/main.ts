@@ -18,10 +18,9 @@
 
 import * as Discord from "discord.js";
 
-import config from "./Config.js";
-
+import * as Config from "./Config.js"
 import Database from "./Database.js";
-import Command from "./Commands/Command.js";
+import type Command from "./Commands/Command.js";
 import Help from "./Commands/Help.js";
 import Info from "./Commands/Info.js";
 import Remove from "./Commands/Remove.js";
@@ -30,6 +29,8 @@ import Set from "./Commands/Set.js";
 import SetImage from "./Commands/SetImage.js";
 import SetText from "./Commands/SetText.js";
 import Status from "./Commands/Status.js";
+
+const config: Config.Config = Config.getConfig();
 
 const client: Discord.Client = new Discord.Client({
     intents: [Discord.IntentsBitField.Flags.MessageContent, Discord.IntentsBitField.Flags.DirectMessages, Discord.IntentsBitField.Flags.Guilds, Discord.IntentsBitField.Flags.GuildMessages],
@@ -42,8 +43,6 @@ const client: Discord.Client = new Discord.Client({
         }
     }
 });
-
-const prefix: string | undefined = config.prefix;
 
 /**
  * Indicates if the client is ready, the database is connected, and the slash commands are registered.
@@ -77,10 +76,10 @@ async function onReady(client: Discord.Client<true>): Promise<void> {
 
     // if first shard, register slash commands so it's only done once
     if (client.shard!.ids.includes(0)) {
-        await initializeSlashCommands(client, config.botToken, commands);
+        await registerSlashCommands(client, config.botToken, commands);
     }
-    if (prefix) {
-        client.user.setActivity(prefix + "help for help!");
+    if (config.prefix) {
+        client.user.setActivity(config.prefix + "help for help!");
     } else {
         client.user.setActivity("/help for help!");
     }
@@ -122,7 +121,7 @@ async function onInteractionCreate(interaction: Discord.Interaction): Promise<vo
  *
  * @see Command#getSlashCommand
  */
-async function initializeSlashCommands(client: Discord.Client<true>, botToken: string, commands: Command[]): Promise<void> {
+async function registerSlashCommands(client: Discord.Client<true>, botToken: string, commands: Command[]): Promise<void> {
     const slashCommands = [];
     for (const command of commands) {
         const slashCommand = command.getSlashCommand();
@@ -242,8 +241,8 @@ async function onMessageCreate(message: Discord.Message): Promise<void> {
     let tagUsed = true;
     let parameters: string | string[] = message.content;
     // trim the leading % or @BetterSlowmode from the message
-    if (prefix && message.content.startsWith(prefix)) {
-        parameters = parameters.substring(prefix.length)
+    if (config.prefix && message.content.startsWith(config.prefix)) {
+        parameters = parameters.substring(config.prefix.length)
         tagUsed = false;
     } else if (message.content.startsWith(`<@!${client.user!.id}>`)) {
         parameters = parameters.substring(`<@!${client.user!.id}>`.length);
@@ -266,7 +265,7 @@ async function onMessageCreate(message: Discord.Message): Promise<void> {
     } else {
         // if no command was sent, but the bot was tagged, print the help command
         if (tagUsed) {
-            await sendMessage(message.channel, await commands[0].tagCommand(channelData, [], message));
+            await sendMessage(message.channel, await helpCommand.tagCommand(channelData, [], message));
         }
     }
 }
@@ -312,4 +311,4 @@ client.on(Discord.Events.ChannelDelete, onChannelDelete);
 client.on(Discord.Events.ThreadDelete, onChannelDelete);
 client.on(Discord.Events.MessageCreate, onMessageCreate);
 
-client.login(config.botToken);
+client.login();

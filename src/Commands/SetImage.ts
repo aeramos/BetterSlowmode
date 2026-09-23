@@ -16,7 +16,7 @@
  * along with BetterSlowmode.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import * as Discord from "discord.js";
+import type * as Discord from "discord.js";
 
 import Set from "./Set.js";
 

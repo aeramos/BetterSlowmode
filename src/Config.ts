@@ -18,33 +18,35 @@
 
 import * as dotenv from "dotenv";
 
-interface Config {
+export interface Config {
     botToken: string;
     databaseURL: string;
-    prefix: string | undefined;
+    prefix: string | null;
     supportCode: string;
 }
 
-function checkExists(varName: string) {
+export function loadEnvFile(): void {
+    dotenv.config({
+        path: "config/env.conf",
+        quiet: true,
+    });
+}
+
+export function getConfig(): Config {
+    checkExists("BOT_TOKEN");
+    checkExists("DATABASE_URL");
+    checkExists("SUPPORT_CODE");
+    return {
+        botToken: process.env.BOT_TOKEN!,
+        databaseURL: process.env.DATABASE_URL!,
+        prefix: process.env.PREFIX || null,
+        supportCode: process.env.SUPPORT_CODE!,
+    };
+}
+
+function checkExists(varName: string): void {
     if (!process.env[varName]) {
         console.error(`Error: Missing environment variable: ${varName}`);
         process.exit(1);
     }
 }
-
-// load and validate config
-dotenv.config({
-    path: "config/env.conf",
-    quiet: true,
-});
-checkExists("BOT_TOKEN");
-checkExists("DATABASE_URL");
-checkExists("SUPPORT_CODE");
-
-const config: Config = {
-    botToken: process.env.BOT_TOKEN!,
-    databaseURL: process.env.DATABASE_URL!,
-    prefix: process.env.PREFIX,
-    supportCode: process.env.SUPPORT_CODE!,
-}
-export default config;

@@ -16,10 +16,10 @@
  * along with BetterSlowmode.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import * as Discord from "discord.js";
+import type * as Discord from "discord.js";
 
 import Command from "./Command.js";
-import ChannelData from "../ChannelData.js";
+import type ChannelData from "../ChannelData.js";
 
 class Info extends Command {
     private readonly supportCode: string;
@@ -45,7 +45,7 @@ class Info extends Command {
         };
     }
 
-    public async tagCommand(channelData: ChannelData, parameters: string[], message: Discord.Message): Promise<Discord.MessageCreateOptions> {
+    public async tagCommand(channelData: ChannelData | null, parameters: string[], message: Discord.Message): Promise<Discord.MessageCreateOptions> {
         return this.command();
     }
 

@@ -19,8 +19,8 @@
 import * as Discord from "discord.js";
 
 import Command from "./Command.js";
-import ChannelData from "../ChannelData.js";
-import Database from "../Database.js";
+import type ChannelData from "../ChannelData.js";
+import type Database from "../Database.js";
 
 class Remove extends Command {
     private readonly database: Database;
@@ -68,7 +68,7 @@ class Remove extends Command {
             }
 
             // get the channel. return the error code if there is an error
-            const tempChannel = await this.getChannel(parameters[0], <Discord.Guild>message.guild, message.channelId, message.author.id, false);
+            const tempChannel = await this.getChannel(parameters[0]!, <Discord.Guild>message.guild, message.channelId, message.author.id, false);
             if (typeof tempChannel === "string") {
                 return {
                     content: tempChannel

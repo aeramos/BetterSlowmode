@@ -16,9 +16,9 @@
  * along with BetterSlowmode.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import * as Discord from "discord.js";
+import type * as Discord from "discord.js";
 
-import ChannelData from "../ChannelData.js";
+import type ChannelData from "../ChannelData.js";
 
 /**
  * Base class for all bot commands (like Set and Help), including all functions for handling tag commands and slash commands,
@@ -55,7 +55,7 @@ abstract class Command {
     /**
      * Processes and handles a user's tag command request.
      *
-     * @param channelData The slowmode info for the channel the request came from.
+     * @param channelData The slowmode info for the channel the request came from or null if there is no slowmode.
      * @param parameters The parameters sent with the command.
      * @param message The full Message object.
      *

@@ -20,7 +20,7 @@ import * as Discord from "discord.js";
 
 import Command from "./Command.js";
 import ChannelData from "../ChannelData.js";
-import Database from "../Database.js";
+import type Database from "../Database.js";
 
 /**
  * The Set command handles the creation of new slowmodes.

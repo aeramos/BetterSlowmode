@@ -18,11 +18,15 @@
 
 import * as Discord from "discord.js";
 
-import config from "./Config.js";
+import * as Config from "./Config.js";
 import Database from "./Database.js";
 
-const manager = new Discord.ShardingManager("src/main.js", {
+Config.loadEnvFile();
+const config: Config.Config = Config.getConfig();
+
+const manager = new Discord.ShardingManager("dist/main.js", {
     token: config.botToken,
+    execArgv: ["--enable-source-maps"],
 });
 
 /**

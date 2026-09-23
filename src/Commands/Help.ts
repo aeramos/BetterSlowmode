@@ -19,7 +19,7 @@
 import * as Discord from "discord.js";
 
 import Command from "./Command.js";
-import ChannelData from "../ChannelData.js";
+import type ChannelData from "../ChannelData.js";
 
 class Help extends Command {
     private readonly commands: Command[]
@@ -62,7 +62,7 @@ class Help extends Command {
         };
     }
 
-    public async tagCommand(channelData: ChannelData, parameters: string[], message: Discord.Message): Promise<Discord.MessageCreateOptions> {
+    public async tagCommand(channelData: ChannelData | null, parameters: string[], message: Discord.Message): Promise<Discord.MessageCreateOptions> {
         // if no command was given, print the generic help listing. if a *single* command was given, print the help for that command, otherwise print help for the help command
         if (parameters.length === 0) {
             return {
@@ -71,7 +71,7 @@ class Help extends Command {
         } else {
             if (parameters.length === 1) {
                 return {
-                    content: this.command(parameters[0])
+                    content: this.command(parameters[0]!)
                 };
             } else {
                 return {
@@ -104,16 +104,14 @@ class Help extends Command {
         }
 
         // if no valid commands are given, print a list of commands
-        let output = "Commands: `" + this.commands[0].getName() + "`";
-        for (let i = 1; i < this.commands.length; i++){
-            output += ", `" + this.commands[i].getName() + "`"
-        }
+        let output = "Commands: `" + this.commands.map(command => command.getName()).join("`, `") + "`";
+
         output += `\n\nFor help with a specific command, enter: <@${this.id}> \`help [command]\``;
 
-        // give an example using a random command
-        output += `\nExample: <@${this.id}> \`help ${this.commands[Math.floor(Math.random() * this.commands.length)].getName()}\``;
+        // give an example using a random command. fallback to `this` if commands.length = 0 (should never happen)
+        output += `\nExample: <@${this.id}> \`help ${(this.commands[Math.floor(Math.random() * this.commands.length)] ?? this).getName()}\``;
 
-        output += `\n\nTo read the FAQ or join the support server, use: <@${this.id}> \`info\``
+        output += `\n\nTo read the FAQ or join the support server, use: <@${this.id}> \`info\``;
         return output;
     }
 }
